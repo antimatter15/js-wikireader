@@ -3,11 +3,15 @@ body {
   font-family: sans-serif, arial;
   font-size: 10pt;
 }
+
+pre {
+  word-wrap: break-word;
+}
 </style>
-<div style="padding: 10px; float: right; ">
-<input type="text" id="search" style="width: 100%; border: 1px solid gray;" onkeyup="bs(this.value)" placeholder="Search here">
-  <ol id="articles" style="font-size: small; border: 1px solid gray; width: 200px;">
-    <li>Start searching</li>
+<div style="padding: 10px; float: right; display:none" id="searchbox">
+<input type="text" id="search" style="width: 100%; border: 1px solid gray;margin-bottom: 0" onkeyup="bs(this.value)" placeholder="Search here">
+  <ol id="articles" style="font-size: small; border: 1px solid gray; width: 200px; margin-top: 0px; padding-top: 9px; padding-bottom: 10px; border-top: none">
+    Start searching
   </ol>
 </div>
 <div id="page" style="padding: 10px">
@@ -35,49 +39,42 @@ function slugfy(text){
 }
 
 RegExp.escape = function(text) {
-    return text.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&");
+  return text.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&");
 }
 
-function bs(query){
-  if(query.length > 1){
-    binsearch(0, index.size, slugfy(query))
+var lq = '';
+function bs(orig){
+  var query = slugfy(orig);
+  if(query.length > 0 && lq != query){
+    lq = query;
+    binsearch(0, index.size, query, function(start, len){
+      showresults(start, len, orig);
+    })
   }
 }
-var win = 200; //longest wikipedia article title is 208 char.
-function binsearch(start, len, query){
-  var fr = new FileReader();
-  if(len < 10000){
+
+function loadArticle(name){ //note: this is EXACT name
+  binsearch(0, index.size, slugfy(name), function(start, len, query){  
     console.log('final stage',start,len);
+    var fr = new FileReader();
     fr.onload = function(){
       var arr = fr.result.split('\n').slice(1,-1); //abandon the first one. and the last one.
-      var re = new RegExp('^'+ RegExp.escape(query));
-      var art = document.getElementById('articles');
-      art.innerHTML = '';
-      var leven = [];
-      //console.log(arr);
-      var matches = arr.filter(function(i){ //this could probably be optimized
-        if(re.test(i)){
-          return true
-        }else{
-          var dist = damlev(i.substr(0,query.length), query);
-          if(dist < query.length * 0.5){
-            leven.push([dist, i]);
-          }
-        }
+      var matches = arr.map(function(i){
+        var title = i.split(';')[1];
+        var dist = damlev(title, name);
+        return [dist, i]
+      }).sort(function(a,b){
+        return a[0] - b[0]
       })
-
-      matches = matches.concat(leven
-        .sort(function(a,b){return a[0] - b[0]})
-        .map(function(i){return i[1]})
-      );
+      .map(function(i){
+        return i[1]
+      })
       
-      matches.forEach(function(item, index){
-        var li = document.createElement('li');
-        li.innerHTML = item.split(';')[1];
-        art.appendChild(li);
-      });
-      
-      
+      var p = document.getElementById('page');
+      if(matches.length == 0){
+        p.innerHTML = 'Error 404. Article "'+name+'" not found.'
+        return 
+      }
       var m = matches[0].split(';');
       var title = m[1];
       var start = m[2];
@@ -87,17 +84,100 @@ function binsearch(start, len, query){
       
       var wr = new FileReader();
       wr.onload = function(){
-        var p = document.getElementById('page');
         p.innerHTML = '<h1>'+title+'</h1>'+ wikiParse(wr.result);
-        p.innerText += wr.result;
+        p.innerHTML += '<pre>'+wr.result+'</pre>';
+        
+        var rere = /\#REDIRECT\s*\[\[([^\]]+)\]\]/i; //redirect regex
+        if(rere.test(wr.result)){
+          loadArticle(wr.result.match(rere)[1])
+        }
       }
       var miniblob = wiki.slice(start, len);
       wr.readAsText(miniblob,'utf-8');
-      //console.log(matches)
     }
     var miniblob = index.slice(start, 10000);
-    //console.log(midpoint, miniblob, fr)
     fr.readAsText(miniblob,'utf-8');
+  })
+}
+
+function showresults(start, len, query){
+  console.log('final stage',start,len);
+  var fr = new FileReader();
+  fr.onload = function(){
+    var arr = fr.result.split('\n').slice(1,-1); //abandon the first one. and the last one.
+
+    var re = new RegExp('^'+ RegExp.escape(slugfy(query)));
+    var art = document.getElementById('articles');
+    art.innerHTML = '';
+    var leven = [];
+    //console.log(arr);
+    var matches = arr.filter(function(i){ //this could probably be optimized
+      if(re.test(i)){
+        return true
+      }else{
+        var title = i.split(';')[1];
+        var dist = damlev(title.substr(0,query.length), query) + damlev(title, query) / 2;
+
+        leven.push([dist, i]);
+      }
+    }).sort(function(b,a){
+      var bx = b.split(';'), ax = a.split(';');
+      
+      return damlev(bx[1], query) - damlev(ax[1], query) //a.split(';')[3] - b.split(';')[3] //sort by file size
+    })
+
+    matches = matches.concat(leven
+      .sort(function(a,b){return a[0] - b[0]})
+      .map(function(i){return i[1]})
+    );
+    
+    var articles = {};
+    matches.filter(function(item, index){
+      var t = item.split(';')[2]; //position where article starts
+      if(articles[t]) return false;
+      articles[t] = true;
+      return true;
+    })
+    
+    
+    matches.forEach(function(item, index){
+      var li = document.createElement('li');
+      li.innerHTML = item.split(';')[1];
+      art.appendChild(li);
+    });
+    
+    if(matches.length == 0){
+      art.innerHTML = 'No results :('
+      return;
+    }
+    
+    var m = matches[0].split(';');
+    var title = m[1];
+    var start = m[2];
+    var len = m[3];
+    
+    loadArticle(title);
+  }
+  var miniblob = index.slice(start, 10000);
+  //console.log(midpoint, miniblob, fr)
+  fr.readAsText(miniblob,'utf-8');
+
+}
+
+var win = 200; //longest wikipedia article title is 208 char.
+
+var lastresult = [0,0,0]; //a very simple cache
+
+function binsearch(start, len, query, callback){
+  if(lastresult[2] == query){
+    console.log('pulling data from cache');
+    return callback(lastresult[0], lastresult[1], lastresult[2]);
+  }
+  var fr = new FileReader();
+  
+  if(len < 10000){
+    lastresult = [start,len,query];
+    callback(start, len, query)
     
     return;
   }
@@ -108,10 +188,10 @@ function binsearch(start, len, query){
     //console.log(arr);
     if(mid > query){
       //console.log(mid, '>', query)
-      binsearch(start, Math.round(len/2) + win, query);
+      binsearch(start, Math.round(len/2) + win, query, callback);
     }else{
       //console.log(mid, '<', query)
-      binsearch(start + Math.round(len/2) - win, Math.round(len/2), query);
+      binsearch(start + Math.round(len/2) - win, Math.round(len/2), query, callback);
     }
   }
   var midpoint = Math.round(start + len/2);
@@ -132,7 +212,7 @@ ondrop=function(e){
       wiki = files[1];
       index = files[0];
     }
-    document.getElementById('search').style.display = '';
+    document.getElementById('searchbox').style.display = '';
   }else{
     alert('wrong number of files. needed to get two. sorted index and wiki')
   }

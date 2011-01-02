@@ -1,5 +1,64 @@
-function wikiParse(wiki){
-  return InstaView.convert(wiki)
+function wikiParse(w){
+  //var w = InstaView.convert(wiki/*.replace(/\n\|\-/g,'\n{|-')*/);
+  var boxes = 0;
+  var buf = [''];
+  
+  var ach = 0;
+  var evil = false;
+  
+  for(var i = 0, l = w.length; i < l; i++){
+    if(w.substr(i,2) == '[['){
+      ach++;
+      var next = w.substr(i+2,10);
+      //console.log('[')
+      if(/File|Image/i.test(next)) evil = ach;
+    }
+    if(w.substr(i,2) == ']]'){
+      ach--;
+      
+      if(evil == false){
+        buf[boxes] += ']]';
+      }
+      
+      if(ach < evil){
+        evil = false;
+      }
+      
+      i++;
+      continue;
+    }
+    
+  
+    if(w.substr(i, 2) == '{{'){
+      var boxid = 'wikibox_'+Math.random().toString(36).substr(2);
+      //buf[boxes] += '<span id="'+boxid+'"></span>'
+      boxes++;
+      //console.log('new box', boxes);
+      buf[boxes] = boxid;
+    }else if(evil == false){
+      buf[boxes] += w.charAt(i);
+    }
+    
+    
+    if(w.substr(i, 2) == '}}'){
+      i++;
+      var start = buf[boxes].indexOf('{');
+      var id = buf[boxes].substr(0,start);
+      var body = buf[boxes].slice(start+1, -1);
+      //console.log(id,body);
+      
+      boxes--;
+      if(body != 'rh'){
+        buf[boxes] += '<span id="'+boxid+'"></span>'
+      }
+      //console.log('closed box', boxes);
+      if(boxes < 0) boxes = 0;
+    }
+    
+
+  }
+  //return buf[0]
+  return InstaView.convert(buf[0]);
 }
 
 var InstaView = {}
@@ -17,6 +76,8 @@ InstaView.conf =
  
 	paths: {
 		articles: '#',
+		images_fallback: 'http://upload.wikimedia.org/wikipedia/commons/',
+		magnify_icon: 'skins/common/images/magnify-clip.png'
 	},
  
 	locale: {
@@ -379,7 +440,7 @@ InstaView.convert = function(wiki)
  
 		var img = f("<img onerror=\"this.onerror=null;this.src='?'\" src='?' ? ?>", InstaView.conf.paths.images_fallback + source, InstaView.conf.paths.images + source, (caption!='')? "alt='" + caption + "'" : '', width);
  
-		return f("<a class='image' ? href='?'>?</a>", (caption!='')? "title='" + caption + "'" : '', InstaView.conf.paths.articles + InstaView.conf.locale.image + ':' + filename, img);
+		return f(" <a class='image' ? href='?'>?</a>", (caption!='')? "title='" + caption + "'" : '', InstaView.conf.paths.articles + InstaView.conf.locale.image + ':' + filename, img);
 		
 		//*/
 	}
@@ -468,29 +529,29 @@ InstaView.convert = function(wiki)
 			replace(/~{3}(?!~)/g, InstaView.conf.user.name).
  
 			// [[:Category:...]], [[:Image:...]], etc...
-			replace(RegExp('\\[\\[:((?:'+InstaView.conf.locale.category+'|'+InstaView.conf.locale.image+'|'+InstaView.conf.wiki.interwiki+'):.*?)\\]\\]','gi'), "<a href='"+InstaView.conf.paths.articles+"$1'>$1</a>").
+			replace(RegExp('\\[\\[:((?:'+InstaView.conf.locale.category+'|'+InstaView.conf.locale.image+'|'+InstaView.conf.wiki.interwiki+'):.*?)\\]\\]','gi'), " <a href='"+InstaView.conf.paths.articles+"$1'>$1</a>").
 			replace(RegExp('\\[\\[(?:'+InstaView.conf.locale.category+'|'+InstaView.conf.wiki.interwiki+'):.*?\\]\\]','gi'),'').
  
 			// [[/Relative links]]
-			replace(/\[\[(\/[^|]*?)\]\]/g, f("<a href='?$1'>$1</a>", location)).
+			replace(/\[\[(\/[^|]*?)\]\]/g, f(" <a href='?$1'>$1</a>", location)).
  
 			// [[/Replaced|Relative links]]
-			replace(/\[\[(\/.*?)\|(.+?)\]\]/g, f("<a href='?$1'>$2</a>", location)).
+			replace(/\[\[(\/.*?)\|(.+?)\]\]/g, f(" <a href='?$1'>$2</a>", location)).
  
 			// [[Common links]]
-			replace(/\[\[([^|]*?)\]\](\w*)/g, f("<a href='?$1'>$1$2</a>", InstaView.conf.paths.articles)).
+			replace(/\[\[([^|]*?)\]\](\w*)/g, f(" <a href='?$1'>$1$2</a>", InstaView.conf.paths.articles)).
  
 			// [[Replaced|Links]]
-			replace(/\[\[(.*?)\|([^\]]+?)\]\](\w*)/g, f("<a href='?$1'>$2$3</a>", InstaView.conf.paths.articles)).
+			replace(/\[\[(.*?)\|([^\]]+?)\]\](\w*)/g, f(" <a href='?$1'>$2$3</a>", InstaView.conf.paths.articles)).
  
 			// [[Stripped:Namespace|Namespace]]
-			replace(/\[\[([^\]]*?:)?(.*?)( *\(.*?\))?\|\]\]/g, f("<a href='?$1$2$3'>$2</a>", InstaView.conf.paths.articles)).
+			replace(/\[\[([^\]]*?:)?(.*?)( *\(.*?\))?\|\]\]/g, f(" <a href='?$1$2$3'>$2</a>", InstaView.conf.paths.articles)).
  
 			// External links
 			replace(/\[(https?|news|ftp|mailto|gopher|irc):(\/*)([^\]]*?) (.*?)\]/g, "<a href='$1:$2$3'>$4</a>"). /**/
-			replace(/\[http:\/\/(.*?)\]/g, "<a href='http://$1'>[#]</a>").
-			replace(/\[(news|ftp|mailto|gopher|irc):(\/*)(.*?)\]/g, "<a href='$1:$2$3'>$1:$2$3</a>"). /**/
-			replace(/(^| )(https?|news|ftp|mailto|gopher|irc):(\/*)([^ $]*)/g, "$1<a href='$2:$3$4'>$2:$3$4</a>"). /**/
+			replace(/\[http:\/\/(.*?)\]/g, " <a href='http://$1'>[#]</a>").
+			replace(/\[(news|ftp|mailto|gopher|irc):(\/*)(.*?)\]/g, " <a href='$1:$2$3'>$1:$2$3</a>"). /**/
+			replace(/(^| )(https?|news|ftp|mailto|gopher|irc):(\/*)([^ $]*)/g, "$1 <a href='$2:$3$4'>$2:$3$4</a>"). /**/
  
 			replace('__NOTOC__','').
 			replace('__NOEDITSECTION__','');
