@@ -28,7 +28,7 @@ pre {
 var wiki,index;
 
 onhashchange = function(){
-  loadArticle(unescape(location.hash.substr(1)))
+  loadArticle(unescape(location.hash.substr(1)), true)
 }
 
 function slugfy(text){
@@ -59,11 +59,13 @@ function bs(orig){
   }
 }
 var lastart = 0;
-function loadArticle(name){
-  if(+new Date - lastart > 3000){
-    history.pushState({}, '', '#'+name);
-  }else{
-    history.replaceState({}, '', '#'+name);
+function loadArticle(name, nohist){
+  if(!nohist){
+    if(+new Date - lastart > 3000){
+      history.pushState({}, '', '#'+name);
+    }else{
+      history.replaceState({}, '', '#'+name);
+    }
   }
   lastart = +new Date;
   binsearch(0, index.size, slugfy(name), function(start, len, query){  
@@ -96,13 +98,14 @@ function loadArticle(name){
       
       var wr = new FileReader();
       wr.onload = function(){
-        var rere = /\#REDIRECT\s*\[\[([^\]]+)\]\]/i; //redirect regex
+        var rere = /\#REDIRECT.*\[\[([^\]]+)\]\]/i; //redirect regex
         if(rere.test(wr.result)){
           loadArticle(wr.result.match(rere)[1])
         }else{
           p.innerHTML = '<h1>'+title+'</h1>'+ wikiParse(wr.result);
-          p.innerHTML += '<pre>'+wr.result+'</pre>';
-          
+          if(window.debug){
+            p.innerHTML += '<hr><pre>'+wr.result+'</pre>';
+          }
         }
       }
       var miniblob = wiki.slice(start, len);
