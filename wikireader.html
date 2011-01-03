@@ -27,6 +27,9 @@ pre {
 <script>
 var wiki,index;
 
+onhashchange = function(){
+  loadArticle(unescape(location.hash.substr(1)))
+}
 
 function slugfy(text){
   //a port of the python one
@@ -46,14 +49,23 @@ var lq = '';
 function bs(orig){
   var query = slugfy(orig);
   if(query.length > 0 && lq != query){
+    if(document.getElementById('search').value != orig){
+      document.getElementById('search').value = orig;
+    }
     lq = query;
     binsearch(0, index.size, query, function(start, len){
       showresults(start, len, orig);
     })
   }
 }
-
-function loadArticle(name){ //note: this is EXACT name
+var lastart = 0;
+function loadArticle(name){
+  if(+new Date - lastart > 3000){
+    history.pushState({}, '', '#'+name);
+  }else{
+    history.replaceState({}, '', '#'+name);
+  }
+  lastart = +new Date;
   binsearch(0, index.size, slugfy(name), function(start, len, query){  
     console.log('final stage',start,len);
     var fr = new FileReader();
@@ -84,12 +96,13 @@ function loadArticle(name){ //note: this is EXACT name
       
       var wr = new FileReader();
       wr.onload = function(){
-        p.innerHTML = '<h1>'+title+'</h1>'+ wikiParse(wr.result);
-        p.innerHTML += '<pre>'+wr.result+'</pre>';
-        
         var rere = /\#REDIRECT\s*\[\[([^\]]+)\]\]/i; //redirect regex
         if(rere.test(wr.result)){
           loadArticle(wr.result.match(rere)[1])
+        }else{
+          p.innerHTML = '<h1>'+title+'</h1>'+ wikiParse(wr.result);
+          p.innerHTML += '<pre>'+wr.result+'</pre>';
+          
         }
       }
       var miniblob = wiki.slice(start, len);
@@ -99,6 +112,7 @@ function loadArticle(name){ //note: this is EXACT name
     fr.readAsText(miniblob,'utf-8');
   })
 }
+
 
 function showresults(start, len, query){
   console.log('final stage',start,len);
@@ -142,7 +156,7 @@ function showresults(start, len, query){
     
     matches.forEach(function(item, index){
       var li = document.createElement('li');
-      li.innerHTML = item.split(';')[1];
+      li.innerHTML = '<a href="#'+item.split(';')[1]+'">'+item.split(';')[1]+"<"+"/a>";
       art.appendChild(li);
     });
     
@@ -155,6 +169,7 @@ function showresults(start, len, query){
     var title = m[1];
     var start = m[2];
     var len = m[3];
+    
     
     loadArticle(title);
   }
@@ -213,6 +228,7 @@ ondrop=function(e){
       index = files[0];
     }
     document.getElementById('searchbox').style.display = '';
+    //onhashchange();
   }else{
     alert('wrong number of files. needed to get two. sorted index and wiki')
   }
