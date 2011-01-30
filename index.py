@@ -3,14 +3,31 @@ page = ""
 title = ""
 action = 0
 total = 0
+text_buffer = ""
 
-w = open("wiki.txt","w")
 
-unsorted = []
+w = open("wiki.lzma","w")
+index = open("unsorted.txt","w")
+redirects = open("redirects.txt","w")
+
+index_buffer = []
 
 import htmlentitydefs, re
 #http://snipplr.com/view.php?codeview&id=26266
 
+import pylzma
+
+import struct
+from cStringIO import StringIO
+
+def compress_compatible(data):
+  c = pylzma.compressfile(StringIO(data))
+  # LZMA header
+  result = c.read(5)
+  # size of uncompressed data
+  result += struct.pack('<Q', len(data))
+  # compressed data
+  return result + c.read()
 
 def slugfy(text, separator = ""):
   ret = ""
@@ -40,12 +57,45 @@ def end_element(name):
     global total
     total += 1
     if page != "" and title != "":
-      global w, d
-      p = page.encode('utf-8')
+      global w, text_buffer, index_buffer, index, redirects
+      page = page.encode('utf-8')
+      title = title.encode('utf-8')
+      
+      page = re.sub(r'<ref( \w+=.*)?>[^\<\>]*</ref>', "", page)
+      page = re.sub(r'\[\[\s*[a-z]{2,3}(-[a-z]{1,3}(-[a-z]{1,3})?)?:.*\]\]\s*', "", page)
+      page = re.sub(r'<!--[^>]*?-->', "", page)
+      page = re.sub(r'\|\s*[\w_]+\s*=\s*\n', "", page)
+      mx = re.search(r'={1,4}\s*?references\s*?={1,4}', page, re.IGNORECASE)
+      if mx is not None: page = page[0: mx.start(0)]
+      mx = re.search(r'={1,4}\s*?sources\s*?={1,4}', page, re.IGNORECASE)
+      if mx is not None: page = page[0: mx.start(0)]
+      mx = re.search(r'={1,4}\s*?other websites\s*?={1,4}', page, re.IGNORECASE)
+      if mx is not None: page = page[0: mx.start(0)]
+      p = "=" + title + "=\n\n\n\n" + page
+      
       pln = len(p)
-      unsorted.append((slugfy(title.encode('utf-8')), title.encode('utf-8'), w.tell(), pln))
-      w.write(p)
+
       #todo: escape ; occurances
+      m = re.match('\#REDIRECT.*\[\[([^\]]+)\]\]', page, re.I)
+      if m is not None:
+        redirects.write(slugfy(title) + ";" + title + ";" + m.group(1) + "\n")
+      else:
+        if len(text_buffer) + len(p) < 130000: #split into 100KB chunks
+          text_buffer += p
+        else:
+          if len(text_buffer) > 150000:
+            print "Warning: Insanely Huge Block"
+            print index_buffer
+          compressed = compress_compatible(text_buffer)
+          cln = len(compressed)
+          print "wrote sector length ",len(text_buffer), "compressed", cln
+          w.write(compressed)
+          index_buffer = []
+          text_buffer = p
+          
+        index_buffer.append(title)
+        index.write(slugfy(title) + ";"+ title + ";" + str(w.tell()) + "\n")
+
       page = ""
       title = ""
       if total % 50 == 0:
@@ -54,12 +104,8 @@ def end_element(name):
     
 
 def char_data(data):
-  #print 'Character data:', repr(data)
   global action, page, title
-  
   if action > 0:
-    #if data.startswith("[[Category:"):
-    #  action = 0
     if action == 1:
       title += data
     elif action == 2:
@@ -79,13 +125,3 @@ for line in fileinput.input():
     p.Parse(line)
 p.Parse("",1)
 
-print "creating index..."
-d = open('index.txt', 'w')
-print "sorting index..."
-unsorted.sort(lambda x,y: cmp(x[0], y[0]))
-print "mapping index..."
-mapped = map(lambda x: x[0] + ';' + x[1] + ';'+ str(x[2]) + ';' + str(x[3]) + "\n",unsorted)
-print "writing index..."
-d.writelines(mapped)
-w.close()
-d.close()
