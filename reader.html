@@ -1,24 +1,79 @@
 <style>
 body {
-  font-family: sans-serif, arial;
-  font-size: 10pt;
+  font-family: sans-serif;
+  font-size: 13px;
+  overflow-y: scroll;
+  color: #111111;
+  background-color: #fefdfc;
 }
 
 pre {
   word-wrap: break-word;
 }
+
+#articles li {
+  list-style-type: none;
+}
+
+#articles {
+  padding-left: 10px;
+  background-color: #F3F3F3;
+}
+
+#articles ol {
+  padding-left: 10px;
+}
+
+#articles * {
+  word-wrap: break-word;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+a:visited {
+    color: #0b0080;
+}
+a {
+  text-decoration: none;
+  color: #0645AD;
+  background: none;
+}
+
+a:active {
+  color: #FAA700;
+}
 </style>
 <title>carrot</title>
+
 <div style="padding: 10px; float: right; display:none" id="searchbox">
-<input type="text" id="search" style="width: 100%; border: 1px solid gray;margin-bottom: 0" onkeyup="bs(this.value)" placeholder="Search here">
+
+<input type="text" id="search" style="width: 100%; border: 1px solid gray;margin-bottom: 0" placeholder="Search here">
   <ol id="articles" style="font-size: small; border: 1px solid gray; width: 200px; margin-top: 0px; padding-top: 9px; padding-bottom: 10px; border-top: none">
     Start searching
   </ol>
 </div>
+
+<div  style="padding:10px; float: right">
+
+<select id="dumpselect">
+  <option value="_add">Add More</option>
+</select>
+<button onclick="loadRandomPage()">Random Article</button>
+</div>
+
 <div id="page" style="padding: 10px">
-<div id="setup" style="display:block">
+
+
+<div id="home" style="display:none">
+<img src="xkcd.png">
+</div>
+
+</div>
+
+<div id="setup" style="display:none">
 <img src="bunny.jpg" width="300" style="float:left;padding-right: 25px">
-<input type="file" style="position:absolute;top: 244px;left: 57px;background-color: orange;border-radius: 14px;padding: 5px;">
+<input type="file" id="fileselect" style="position:absolute;top: 219px;left: 33px;background-color: orange;border-radius: 14px;padding: 5px;">
 <div>
 <h1>Feed the bunny!</h1>
 <p>
@@ -32,39 +87,255 @@ Before she eats your brains, please note that this is a very special type of bun
 </p>
 </div>
 </div>
-<div id="home" style="display:none">
-<img src="xkcd.png">
-</div>
-</div>
 
+<script src="slugfy.js"></script>
 <script src="render.js"></script>
+<script src="damlev.js"></script>
+<script src="LZMA_simple.js"></script>
+<script src="binsearch.js"></script>
 <script>
+debug = 1;
 
-function onInitFs(fs) {
-  console.log('Opened file system: ' + fs.name);
+var fs = null;
+document.getElementById('dumpselect').onchange = updateSelection;
+
+function updateSelection(){
+  var select = document.getElementById('dumpselect');
+  if(select.value == '_add'){
+    document.getElementById("setup").style.display = '';
+    document.getElementById("page").style.display = 'none';
+    document.getElementById("searchbox").style.display = 'none';
+  }else{
+    localStorage._current = select.value;
+    loadDump(select.value);
+    document.getElementById("page").style.display = '';
+    document.getElementById("searchbox").style.display = '';
+    document.getElementById("setup").style.display = 'none'
+  }
 }
+document.getElementById('fileselect').onchange = function(e){
+  var file = this.files[0];
+  console.log(file);
+  if(!file) return;
+  var fr = new FileReader();
+  fr.onload = function(){
+    var metasize = parseInt(fr.result.substr(0,20), 10);
+    var mr = new FileReader();
+    mr.onload = function(){
+      var meta = JSON.parse(mr.result);
+      localStorage[meta.code] = meta.name;
+      var name = meta.code;
+      fs.root.getFile(name+".dump", {create: true, exclusive: false}, function(fileEntry) {
+        fileEntry.createWriter(function(fileWriter) {
+          fileWriter.write(file);
+          console.log('writing dump')
+        }, errorHandler);
+      }, errorHandler);
+    }
+    mr.readAsText(file.slice(40, metasize));
+  }
+  fr.readAsText(file.slice(0,40))
+}
+
+var lastart = 0;
+document.getElementById('search').onkeyup = function(){
+  if(this.value.length == 0) return;
+  runSearch(this.value, function(results, levdict){
+    displayResults(results, levdict);
+    var name = results[0][0];
+    loadArticle(name) //todo: optimize for redirects.
+    
+    if(+new Date - lastart > 3000) history.pushState({}, '', '#'+name);
+    else history.replaceState({}, '', '#'+name);
+    
+    lastart = +new Date;
+  })
+}
+
+
+function scoreResult(result, query){
+  return damlev(result.substr(0, query.length), query) * 0.3 + damlev(result.substr(0, query.length).toLowerCase(), query.toLowerCase()) * 0.2 + Math.abs(query.length - result.length) * 0.1
+}
+
+function displayResults(results, levdict){
+  var art = document.getElementById('articles');
+  art.innerHTML = '';
+  var redict = {};
+  results.slice(0,20).forEach(function(item){
+    var li = document.createElement('li');
+    var d = '';
+    if(window.debug){
+      d = ' ('+ levdict[item[0]].toFixed(1)+')'
+    }
+    if(item[2]){
+      if(!redict[item[1]]){
+        li.innerHTML = '<a href="#'+item[1]+'">'+item[1]+"<"+"/a>";
+        var ol = document.createElement('ol');
+        li.appendChild(ol)
+        redict[item[1]] = ol;
+        art.appendChild(li);
+      }
+      
+      redict[item[1]].innerHTML += "<li>"+item[0]+d+"<"+"/li>";
+    }else if(!redict[item[0]]){
+      li.innerHTML = '<a href="#'+item[0]+'">'+item[0]+d+"<"+"/a>";
+      art.appendChild(li);
+    }
+  })
+}
+
+function runSearch(query, callback){
+  binsearch(0, index.size, slugfy(query), function(size, length, slug){
+    var fr = new FileReader();
+    fr.onload = function(){
+      var results = fr.result.split('\n').slice(1, -1).map(function(item){
+        if(item.indexOf('>') != -1) return item.split('>').concat([true])
+        else return item.split(';');
+      })
+      var levdict = {};
+      //console.log(results.map(function(x){return x[0]}));
+      results.forEach(function(item){
+        levdict[item[0]] = scoreResult(item[0], query)
+      });
+      results = results.sort(function(a,b){
+        return levdict[a[0]] - levdict[b[0]];
+      })
+      callback(results, levdict);
+    }
+    fr.readAsText(index.slice(size - 500, 10000), 'utf-8')
+  })
+}
+
+
+function randomPage(callback){
+  var fr = new FileReader();
+  fr.onload = function(){
+    var results = fr.result.split('\n').slice(1, -1).map(function(item){
+      if(item.indexOf('>') != -1) return item.split('>')[1]
+      else return item.split(';')[0];
+    })
+    callback(results[0]);
+  }
+  fr.readAsText(index.slice(Math.floor(index.size * Math.random()), 1000), 'utf-8')
+}
+
+
+function loadRandomPage(){
+  randomPage(function(e){
+    loadArticle(e)
+    location.hash = '#'+e;
+  })
+}
+
+
+var index, dump;
+
+
+function loadDump(code){
+  console.log('loading dump');
+  fs.root.getFile(code+'.dump', {create:false}, function(e){
+    e.file(function(file){
+      var fr = new FileReader();
+      fr.onload = function(){
+        var metasize = parseInt(fr.result.substr(0,20), 10);
+        var indexsize = parseInt(fr.result.substr(20,20), 10);
+        var mr = new FileReader();
+        mr.onload = function(){
+          var meta = JSON.parse(mr.result);
+          localStorage[meta.code] = meta.name; //hash to have prettier names.
+          
+          loadArticle(location.hash.substr(1))
+        }
+        mr.readAsText(file.slice(40, metasize));
+        index = file.slice(40 + metasize, indexsize);
+        dump = file.slice(40 + metasize + indexsize, file.size);
+        console.log('loaded index and dump')
+      }
+      fr.readAsText(file.slice(0,40))
+    })
+  }, function(){
+  
+  })
+}
+
+
+
+onhashchange = function(){
+  loadArticle(location.hash.substr(1))
+}
+
+function loadArticle(title){
+  runSearch(title, function(articles){
+    if(articles[0][2]) return loadArticle(articles[0][1]); //handle redirects.
+    var title = articles[0][0],
+        blockpos = parseInt(articles[0][1],10);
+    var fr = new FileReader();
+    fr.onload = function(){
+      var block = LZMA.decompress(fr.result.split('').map(function(x){return x.charCodeAt(0)}))
+      if(block == false) return;
+      var artpos = block.indexOf('='+title+'=\n\n\n\n');
+      var article = block.substr(artpos);
+      var match = article.substr(4).match(/=[^\n=]*?=\n\n\n\n/);
+      if(match) article = article.substr(0, match.index + 4);
+      article = article.replace(/\n\n\n\n/, '\n\n')
+      //console.log(article);
+      var p = document.getElementById('page');
+      p.innerHTML = wikiParse(article);
+      document.title = title;
+      if(window.debug){
+        p.innerHTML += '<hr><pre>'+article+'</pre>';
+      }
+      scrollTo(0,0)
+    }
+    fr.readAsBinaryString(dump.slice(blockpos, 30000)) //todo: handle fringe cases where articles are huge
+    //todo: get this window from ratio + window size from metadata
+  })
+}
+
+
+function onInitFs(hfs) {
+  fs = hfs; //set an evil global
+  console.log('Opened file system: ' + fs.name);
+  findDumps();
+}
+
+
+function findDumps(){
+  var dirReader = fs.root.createReader();
+  var entries = [];
+  var readEntries = function(){
+    dirReader.readEntries(function(results){
+      if(!results.length){
+        var select = document.getElementById('dumpselect');
+        while(select.options.length > 1) select.removeChild(select.options[0]);
+        var addmore = select.options[0];
+        entries.forEach(function(item){
+          if(/\.dump$/.test(item.name)){
+            console.log(item);
+            var code = item.name.replace('.dump','');
+            var opt = document.createElement('option');
+            opt.innerHTML = localStorage[code] || code;
+            if(code == localStorage._current){
+              opt.setAttribute('selected','selected');
+            }
+            opt.value = code;
+            select.insertBefore(opt, addmore);
+          }
+        });
+        updateSelection();
+      }else{
+        entries = entries.concat([].slice.call(results, 0));
+        readEntries();
+      }
+    }, errorHandler);
+  }
+  readEntries();
+}
+
 function errorHandler(){
+  console.log('Error');
 }
 window.requestFileSystem(window.PERSISTENT, 9*1024*1024*1024 /*GB*/, onInitFs, errorHandler);
 
-
-ondragover=function(){return false}
-ondrop=function(e){
-  if(e.dataTransfer.files.length == 2){
-    var files = e.dataTransfer.files;
-    if(files[0].size > files[1].size){
-      wiki = files[0];
-      index = files[1];
-    }else{
-      wiki = files[1];
-      index = files[0];
-    }
-    document.getElementById('searchbox').style.display = '';
-    //onhashchange();
-  }else{
-    alert('wrong number of files. needed to get two. sorted index and wiki')
-  }
-  return false
-}
 
 </script>

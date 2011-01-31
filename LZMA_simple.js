@@ -3529,7 +3529,7 @@ var LZMA = (function ()
         
         ioe = this$static.d.exception;
         if (ioe) {
-            $wnd.alert('Decompression failed: ' + ioe.detailMessage);
+            $wnd.console.log('Decompression failed: ' + ioe.detailMessage);
             return false;
         }
         try {
@@ -3539,7 +3539,7 @@ var LZMA = (function ()
             $e0 = caught($e0);
             if (instanceOf($e0, 11)) {
                 e = $e0;
-                $wnd.alert('Decompression failed: ' + e.detailMessage);
+                $wnd.console.log('Decompression failed: ' + e.detailMessage);
                 return false;
             }
             else 
