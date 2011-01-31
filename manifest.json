@@ -1,0 +1,18 @@
+{
+  "name": "Carrot",
+  "description": "An offline wikipedia reader.",
+  "version": "1",
+  "app": {
+    "launch": {
+      "local_path": "reader.html"
+    }
+  },
+  "icons": {
+    "16": "16.png",
+    "128": "128.png"
+  },
+  "permissions": [
+    "unlimitedStorage",
+    "notifications"
+  ]
+}

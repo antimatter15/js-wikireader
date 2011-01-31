@@ -19,9 +19,19 @@ import pylzma
 
 import struct
 from cStringIO import StringIO
-
+"""
+{dictionarySize: 16, fb: 64,  matchFinder: 0, lc: 3, lp: 0, pb: 2},
+{dictionarySize: 20, fb: 64,  matchFinder: 0, lc: 3, lp: 0, pb: 2},
+{dictionarySize: 19, fb: 64,  matchFinder: 1, lc: 3, lp: 0, pb: 2},
+{dictionarySize: 20, fb: 64,  matchFinder: 1, lc: 3, lp: 0, pb: 2},
+{dictionarySize: 21, fb: 128, matchFinder: 1, lc: 3, lp: 0, pb: 2},
+{dictionarySize: 22, fb: 128, matchFinder: 1, lc: 3, lp: 0, pb: 2},
+{dictionarySize: 23, fb: 128, matchFinder: 1, lc: 3, lp: 0, pb: 2},
+{dictionarySize: 24, fb: 255, matchFinder: 1, lc: 3, lp: 0, pb: 2},
+{dictionarySize: 25, fb: 255, matchFinder: 1, lc: 3, lp: 0, pb: 2}
+"""
 def compress_compatible(data):
-  c = pylzma.compressfile(StringIO(data))
+  c = pylzma.compressfile(StringIO(data), algorithm = 0, dictionary = 16, fastBytes = 64)
   # LZMA header
   result = c.read(5)
   # size of uncompressed data
@@ -80,10 +90,22 @@ def end_element(name):
       if m is not None:
         redirects.write(slugfy(title) + ";" + title + ";" + m.group(1) + "\n")
       else:
-        if len(text_buffer) + len(p) < 130000: #split into 100KB chunks
+        #41.3 at 130000 algorithm #2
+        #43.3 at 60000 algorithm #2
+        #45.5 at 30000 algorithm #2
+        #45.4 at 30000 no EOS algorithm #1
+        #47.5 at 30000 no EOS algorithm #0
+        #47.6 at 30000 no EOS algorithm #0 dictionary 16 fastBytes 64
+        
+        #(size of simplewiki english in MB) at (compresion block size in bytes)
+        #This number determines the size of the compression block.
+        #js-lzma probably fails with anything over 130000
+        #and also, bigger ones tend to be slower at decompression
+        #but have slightly better compression ratios. 
+        if len(text_buffer) + len(p) < 30000: #split into 100KB chunks
           text_buffer += p
         else:
-          if len(text_buffer) > 150000:
+          if len(text_buffer) > 40000:
             print "Warning: Insanely Huge Block"
             print index_buffer
           compressed = compress_compatible(text_buffer)
