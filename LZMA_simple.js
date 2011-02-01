@@ -913,7 +913,10 @@ var LZMA = (function ()
         }
     }
     else {
-        Array.prototype.splice.apply(dest, [destOfs, len].concat(src.slice(srcOfs, srcOfs + len)));
+
+        for(var i = 0; i < len; i++){
+          dest[destOfs + i] = src[srcOfs + i]
+        }
     }
     }
     
@@ -3422,31 +3425,24 @@ var LZMA = (function ()
     for (i = 0; i < utf.length; ++i) {
         x = utf[i] & 255;
         if ((x & 128) == 0) {
-        if (x == 0)
-            throw $IllegalArgumentException(new IllegalArgumentException(), 'invalid UTF-8');
+        //if (x == 0)throw $IllegalArgumentException(new IllegalArgumentException(), 'invalid UTF-8');
         $appendNonNull(buf.data, String.fromCharCode(x & 65535));
         }
         else if ((x & 224) == 192) {
-        if (i + 1 >= utf.length)
-            throw $IllegalArgumentException(new IllegalArgumentException(), 'invalid UTF-8');
+        //if (i + 1 >= utf.length)throw $IllegalArgumentException(new IllegalArgumentException(), 'invalid UTF-8');
         y = utf[++i] & 255;
-        if ((y & 192) != 128)
-            throw $IllegalArgumentException(new IllegalArgumentException(), 'invalid UTF-8');
+        //if ((y & 192) != 128)throw $IllegalArgumentException(new IllegalArgumentException(), 'invalid UTF-8');
         $append(buf.data, String.fromCharCode((x & 31) << 6 & 65535 | y & 63));
         }
         else if ((x & 240) == 224) {
-        if (i + 2 >= utf.length)
-            throw $IllegalArgumentException(new IllegalArgumentException(), 'invalid UTF-8');
+        //if (i + 2 >= utf.length) throw $IllegalArgumentException(new IllegalArgumentException(), 'invalid UTF-8');
         y = utf[++i] & 255;
-        if ((y & 192) != 128)
-            throw $IllegalArgumentException(new IllegalArgumentException(), 'invalid UTF-8');
+        //if ((y & 192) != 128)throw $IllegalArgumentException(new IllegalArgumentException(), 'invalid UTF-8');
         z = utf[++i] & 255;
-        if ((z & 192) != 128)
-            throw $IllegalArgumentException(new IllegalArgumentException(), 'invalid UTF-8');
+        //if ((z & 192) != 128)throw $IllegalArgumentException(new IllegalArgumentException(), 'invalid UTF-8');
         $appendNonNull(buf.data, String.fromCharCode(((x & 15) << 12 | (y & 63) << 6 | z & 63) & 65535));
         }
-        else 
-        throw $IllegalArgumentException(new IllegalArgumentException(), 'invalid UTF-8');
+        //else throw $IllegalArgumentException(new IllegalArgumentException(), 'invalid UTF-8');
     }
     return $toString(buf.data);
     }

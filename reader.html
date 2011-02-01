@@ -175,8 +175,9 @@ function displayResults(results, levdict){
         redict[item[1]] = ol;
         art.appendChild(li);
       }
-      
-      redict[item[1]].innerHTML += "<li>"+item[0]+d+"<"+"/li>";
+      if(redict[item[1]].childNodes.length < 2){
+        redict[item[1]].innerHTML += "<li>"+item[0]+d+"<"+"/li>";
+      }
     }else if(!redict[item[0]]){
       li.innerHTML = '<a href="#'+item[0]+'">'+item[0]+d+"<"+"/a>";
       art.appendChild(li);
@@ -269,27 +270,52 @@ function loadArticle(title){
     if(articles[0][2]) return loadArticle(articles[0][1]); //handle redirects.
     var title = articles[0][0],
         blockpos = parseInt(articles[0][1],10);
-    var fr = new FileReader();
-    fr.onload = function(){
-      var block = LZMA.decompress(fr.result.split('').map(function(x){return x.charCodeAt(0)}))
-      if(block == false) return;
-      var artpos = block.indexOf('='+title+'=\n\n\n\n');
-      var article = block.substr(artpos);
-      var match = article.substr(4).match(/=[^\n=]*?=\n\n\n\n/);
-      if(match) article = article.substr(0, match.index + 4);
-      article = article.replace(/\n\n\n\n/, '\n\n')
-      //console.log(article);
-      var p = document.getElementById('page');
-      p.innerHTML = wikiParse(article);
-      document.title = title;
-      if(window.debug){
-        p.innerHTML += '<hr><pre>'+article+'</pre>';
-      }
-      scrollTo(0,0)
-    }
-    fr.readAsBinaryString(dump.slice(blockpos, 30000)) //todo: handle fringe cases where articles are huge
-    //todo: get this window from ratio + window size from metadata
+    decodeArticle(title, blockpos, 60000);
   })
+}
+
+
+function decodeArticle(title, blockpos, blocksize){
+  var fr = new FileReader();
+  fr.onload = function(){
+    var blockarr = fr.result.split('').map(function(x){
+      return x.charCodeAt(0)
+    });
+    var block = LZMA.decompress(blockarr);
+    var p = document.getElementById('page');
+    if(block == false){
+      p.innerHTML = 'Error in decompressing LZMA archive. Block index: '+blockpos+' Title: '+title;
+      //this gives the size of the decoded thing if it doesnt fit.
+      //however, we want the compressed size. not the final size.
+      //but it doesnt really matter
+      var truesize = blockarr.slice(5, 5 + 8).map(function(num, pos){
+        return num * Math.pow(256, pos)
+      }).reduce(function(a,b){
+        return a+b
+      });
+      
+      if(blocksize < 0.8 * truesize){
+        console.log('trying again');
+        return decodeArticle(title, blockpos, blocksize);
+      }
+      
+      return
+    };
+    var artpos = block.indexOf('='+title+'=\n\n\n\n');
+    var article = block.substr(artpos);
+    var match = article.substr(4).match(/=[^\n=]*?=\n\n\n\n/);
+    if(match) article = article.substr(0, match.index + 4);
+    article = article.replace(/\n\n\n\n/, '\n\n')
+    //console.log(article);
+    p.innerHTML = wikiParse(article);
+    document.title = title;
+    if(window.debug){
+      p.innerHTML += '<hr><pre>'+article+'</pre>';
+    }
+    scrollTo(0,0)
+  }
+  fr.readAsBinaryString(dump.slice(blockpos, blocksize)) //todo: handle fringe cases where articles are huge
+  //todo: get this window from ratio + window size from metadata
 }
 
 
