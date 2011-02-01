@@ -96,6 +96,16 @@ Before she eats your brains, please note that this is a very special type of bun
 <script>
 debug = 1;
 
+document.body.onclick = function(e){
+  if(e.button == 0 && e.target.tagName.toLowerCase() == 'a'){
+    console.log('click', +new Date);
+    e.preventDefault();
+    console.log(e.target.href);
+    history.pushState({}, '', e.target.href);
+    loadArticle(unescape(location.search.substr(1)))
+  }
+}
+
 var fs = null;
 document.getElementById('dumpselect').onchange = updateSelection;
 
@@ -145,8 +155,8 @@ document.getElementById('search').onkeyup = function(){
     var name = results[0][0];
     loadArticle(name) //todo: optimize for redirects.
     
-    if(+new Date - lastart > 3000) history.pushState({}, '', '#'+name);
-    else history.replaceState({}, '', '#'+name);
+    if(+new Date - lastart > 3000) history.pushState({}, '', '?'+name);
+    else history.replaceState({}, '', '?'+name);
     
     lastart = +new Date;
   })
@@ -169,7 +179,7 @@ function displayResults(results, levdict){
     }
     if(item[2]){
       if(!redict[item[1]]){
-        li.innerHTML = '<a href="#'+item[1]+'">'+item[1]+"<"+"/a>";
+        li.innerHTML = '<a href="?'+encodeURIComponent(item[1])+'">'+item[1]+"<"+"/a>";
         var ol = document.createElement('ol');
         li.appendChild(ol)
         redict[item[1]] = ol;
@@ -179,7 +189,7 @@ function displayResults(results, levdict){
         redict[item[1]].innerHTML += "<li>"+item[0]+d+"<"+"/li>";
       }
     }else if(!redict[item[0]]){
-      li.innerHTML = '<a href="#'+item[0]+'">'+item[0]+d+"<"+"/a>";
+      li.innerHTML = '<a href="?'+encodeURIComponent(item[0])+'">'+item[0]+d+"<"+"/a>";
       art.appendChild(li);
     }
   })
@@ -224,7 +234,8 @@ function randomPage(callback){
 function loadRandomPage(){
   randomPage(function(e){
     loadArticle(e)
-    location.hash = '#'+e;
+    //location.hash = '#'+e;
+    history.pushState({}, '', '?'+e)
   })
 }
 
@@ -245,7 +256,7 @@ function loadDump(code){
           var meta = JSON.parse(mr.result);
           localStorage[meta.code] = meta.name; //hash to have prettier names.
           
-          loadArticle(location.hash.substr(1))
+          //loadArticle(location.search.substr(1))
         }
         mr.readAsText(file.slice(40, metasize));
         index = file.slice(40 + metasize, indexsize);
@@ -261,8 +272,10 @@ function loadDump(code){
 
 
 
-onhashchange = function(){
-  loadArticle(location.hash.substr(1))
+onpopstate = function(){
+  if(window.index){
+    loadArticle(unescape(location.search.substr(1)))
+  }else setTimeout(onpopstate, 0);
 }
 
 function loadArticle(title){
@@ -270,6 +283,7 @@ function loadArticle(title){
     if(articles[0][2]) return loadArticle(articles[0][1]); //handle redirects.
     var title = articles[0][0],
         blockpos = parseInt(articles[0][1],10);
+    console.log('finished search', +new Date);
     decodeArticle(title, blockpos, 60000);
   })
 }
@@ -310,9 +324,10 @@ function decodeArticle(title, blockpos, blocksize){
     p.innerHTML = wikiParse(article);
     document.title = title;
     if(window.debug){
-      p.innerHTML += '<hr><pre>'+article+'</pre>';
+      p.innerHTML += '<hr><div id="viewsrc" style="display:none"><pre>'+article+'</pre></div>';
     }
     scrollTo(0,0)
+    console.log(+new Date);
   }
   fr.readAsBinaryString(dump.slice(blockpos, blocksize)) //todo: handle fringe cases where articles are huge
   //todo: get this window from ratio + window size from metadata
@@ -361,7 +376,7 @@ function findDumps(){
 function errorHandler(){
   console.log('Error');
 }
-window.requestFileSystem(window.PERSISTENT, 9*1024*1024*1024 /*GB*/, onInitFs, errorHandler);
+window.requestFileSystem(window.PERSISTENT, 10*1024*1024*1024 /*GB*/, onInitFs, errorHandler);
 
 
 </script>

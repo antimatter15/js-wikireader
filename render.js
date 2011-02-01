@@ -75,7 +75,7 @@ InstaView.conf =
 	},
  
 	paths: {
-		articles: '#',
+		articles: '?',
 		images_fallback: 'http://upload.wikimedia.org/wikipedia/commons/',
 		magnify_icon: 'skins/common/images/magnify-clip.png'
 	},
