@@ -1,15 +1,18 @@
-var win = 200; //longest wikipedia article title is 208 char.
+var win = 222; //longest wikipedia article title is 208 char.
 
-function binsearch(start, len, slug, callback){
+function binsearch(start, len, slug, callback, mindow){
+  mindow = mindow || 10000;
   var fr = new FileReader();
-  if(len < 10000) return callback(start, len, slug);
+  if(len < mindow) return callback(start, len, slug);
   fr.onload = function(){
     var arr = fr.result.split('\n');
     var mid = slugfy(arr[1]); //this is the entry on the index. slugify the whole thing.
     if(mid > slug){
-      binsearch(start, Math.round(len/2) + win, slug, callback);
+      //console.log(mid,'>',slug)
+      binsearch(start, Math.round(len/2) - win, slug, callback, mindow);
     }else{
-      binsearch(start + Math.round(len/2) - win, Math.round(len/2), slug, callback);
+      //console.log(mid,'<',slug);
+      binsearch(start + Math.round(len/2) + win, Math.round(len/2), slug, callback, mindow);
     }
   }
   var midpoint = Math.round(start + len/2);

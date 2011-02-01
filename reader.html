@@ -1,3 +1,8 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+
 <style>
 body {
   font-family: sans-serif;
@@ -11,20 +16,21 @@ pre {
   word-wrap: break-word;
 }
 
-#articles li {
+#results li {
   list-style-type: none;
 }
 
-#articles {
-  padding-left: 10px;
-  background-color: #F3F3F3;
-}
-
-#articles ol {
+#results {
+  padding: 0;
+  margin: 0;
   padding-left: 10px;
 }
 
-#articles * {
+#results ol {
+  padding-left: 10px;
+}
+
+#results * {
   word-wrap: break-word;
 }
 
@@ -43,15 +49,25 @@ a {
 a:active {
   color: #FAA700;
 }
+
+#viewsrc:active {
+  display: block;
+}
+a.new {
+  color: #C20;
+}
 </style>
 <title>carrot</title>
 
+</head>
+<body>
 <div style="padding: 10px; float: right; display:none" id="searchbox">
-
-<input type="text" id="search" style="width: 100%; border: 1px solid gray;margin-bottom: 0" placeholder="Search here">
-  <ol id="articles" style="font-size: small; border: 1px solid gray; width: 200px; margin-top: 0px; padding-top: 9px; padding-bottom: 10px; border-top: none">
-    Start searching
-  </ol>
+  <input type="text" id="search" style="width: 200px; border: 1px solid gray;margin-bottom: 0" placeholder="Search here">
+  <div style="font-size: small; border: 1px solid gray; width: 200px; margin-top: 0px; padding-top: 9px; padding-bottom: 10px; border-top: none; background-color: #F3F3F3;">
+    <ol id="results">
+      Start searching
+    </ol>
+  </div>
 </div>
 
 <div  style="padding:10px; float: right">
@@ -64,10 +80,6 @@ a:active {
 
 <div id="page" style="padding: 10px">
 
-
-<div id="home" style="display:none">
-<img src="xkcd.png">
-</div>
 
 </div>
 
@@ -87,6 +99,9 @@ Before she eats your brains, please note that this is a very special type of bun
 </p>
 </div>
 </div>
+<footer>
+
+</footer>
 
 <script src="slugfy.js"></script>
 <script src="render.js"></script>
@@ -95,16 +110,21 @@ Before she eats your brains, please note that this is a very special type of bun
 <script src="binsearch.js"></script>
 <script>
 debug = 1;
-
+//*
 document.body.onclick = function(e){
   if(e.button == 0 && e.target.tagName.toLowerCase() == 'a'){
-    console.log('click', +new Date);
-    e.preventDefault();
-    console.log(e.target.href);
-    history.pushState({}, '', e.target.href);
-    loadArticle(unescape(location.search.substr(1)))
+    if(e.target.href.replace(/\?.*$/,'') == location.href.replace(/\?.*$/,'')){
+      //console.log('click', +new Date);
+      e.preventDefault();
+      //history.replaceState({scrollX: scrollX, scrollY: scrollY}, '', location.href);
+      
+      history.pushState({}, '', e.target.href);
+      loadArticle(unescape(location.search.substr(1)))
+    }
   }
-}
+}//*/
+
+var pagescrolls = {};
 
 var fs = null;
 document.getElementById('dumpselect').onchange = updateSelection;
@@ -168,7 +188,7 @@ function scoreResult(result, query){
 }
 
 function displayResults(results, levdict){
-  var art = document.getElementById('articles');
+  var art = document.getElementById('results');
   art.innerHTML = '';
   var redict = {};
   results.slice(0,20).forEach(function(item){
@@ -195,7 +215,8 @@ function displayResults(results, levdict){
   })
 }
 
-function runSearch(query, callback){
+function runSearch(query, callback, exactness){
+  exactness = exactness || 10000;
   binsearch(0, index.size, slugfy(query), function(size, length, slug){
     var fr = new FileReader();
     fr.onload = function(){
@@ -204,7 +225,7 @@ function runSearch(query, callback){
         else return item.split(';');
       })
       var levdict = {};
-      //console.log(results.map(function(x){return x[0]}));
+      console.log(results.map(function(x){return x[0]}));
       results.forEach(function(item){
         levdict[item[0]] = scoreResult(item[0], query)
       });
@@ -213,8 +234,8 @@ function runSearch(query, callback){
       })
       callback(results, levdict);
     }
-    fr.readAsText(index.slice(size - 500, 10000), 'utf-8')
-  })
+    fr.readAsText(index.slice(size - 250, exactness + 250), 'utf-8')
+  }, exactness + 500)
 }
 
 
@@ -244,7 +265,7 @@ var index, dump;
 
 
 function loadDump(code){
-  console.log('loading dump');
+  console.log('loading dump',code);
   fs.root.getFile(code+'.dump', {create:false}, function(e){
     e.file(function(file){
       var fr = new FileReader();
@@ -270,25 +291,44 @@ function loadDump(code){
   })
 }
 
+function checkLinks(){
+  for(var i = 0; i < document.links.length; i++){
+    console.log(document.links[i].href)
+  }
+}
 
+//*
+setInterval(function(){
+  pagescrolls[unescape(location.search.substr(1))] = [scrollX, scrollY];
+},100);
+//*/
+onpopstate = function(e){
+  if(location.search.length <= 1){
+    document.getElementById('page').innerHTML = '<img src="xkcd.png">';
+  }else{
+    state = pagescrolls[unescape(location.search.substr(1))] || [];
+    loadURL();
+  }
+}
 
-onpopstate = function(){
+function loadURL(){
   if(window.index){
     loadArticle(unescape(location.search.substr(1)))
-  }else setTimeout(onpopstate, 0);
+  }else setTimeout(loadURL, 0);
 }
 
 function loadArticle(title){
-  runSearch(title, function(articles){
-    if(articles[0][2]) return loadArticle(articles[0][1]); //handle redirects.
-    var title = articles[0][0],
-        blockpos = parseInt(articles[0][1],10);
-    console.log('finished search', +new Date);
+  runSearch(title, function(results){
+    if(results[0][2]) return loadArticle(results[0][1]); //handle redirects.
+    var title = results[0][0],
+        blockpos = parseInt(results[0][1],10);
+    //console.log('finished search', +new Date);
     decodeArticle(title, blockpos, 60000);
-  })
+  }, 1000)
 }
 
 
+var state = [];
 function decodeArticle(title, blockpos, blocksize){
   var fr = new FileReader();
   fr.onload = function(){
@@ -321,15 +361,22 @@ function decodeArticle(title, blockpos, blocksize){
     if(match) article = article.substr(0, match.index + 4);
     article = article.replace(/\n\n\n\n/, '\n\n')
     //console.log(article);
+    
+    p.innerHTML = '';
+    
     p.innerHTML = wikiParse(article);
+    
+    
+    scrollTo(state[0]||0,state[1]||0)
+    state = {};
+    
     document.title = title;
     if(window.debug){
-      p.innerHTML += '<hr><div id="viewsrc" style="display:none"><pre>'+article+'</pre></div>';
+      p.innerHTML += '<hr><a href="javascript:document.getElementById(\'viewsrc\').style.display=\'\'">Show Source</a><div id="viewsrc" style="display:none"><pre>'+article+'</pre></div>';
     }
-    scrollTo(0,0)
-    console.log(+new Date);
+    //console.log(+new Date);
   }
-  fr.readAsBinaryString(dump.slice(blockpos, blocksize)) //todo: handle fringe cases where articles are huge
+  fr.readAsBinaryString(dump.slice(blockpos, blocksize)) //todo: handle fringe cases where results are huge
   //todo: get this window from ratio + window size from metadata
 }
 
@@ -352,7 +399,6 @@ function findDumps(){
         var addmore = select.options[0];
         entries.forEach(function(item){
           if(/\.dump$/.test(item.name)){
-            console.log(item);
             var code = item.name.replace('.dump','');
             var opt = document.createElement('option');
             opt.innerHTML = localStorage[code] || code;
@@ -380,3 +426,5 @@ window.requestFileSystem(window.PERSISTENT, 10*1024*1024*1024 /*GB*/, onInitFs, 
 
 
 </script>
+</body>
+</html>

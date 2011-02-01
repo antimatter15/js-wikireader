@@ -6,10 +6,25 @@ codepoint2name={"34":"quot","38":"amp","60":"lt","62":"gt","160":"nbsp","161":"i
 "8249":"lsaquo","8250":"rsaquo","8254":"oline","8260":"frasl","8364":"euro","8465":"image","8472":"weierp","8476":"real","8482":"trade","8501":"alefsym","8592":"larr","8593":"uarr","8594":"rarr","8595":"darr","8596":"harr","8629":"crarr","8656":"lArr","8657":"uArr","8658":"rArr","8659":"dArr","8660":"hArr","8704":"forall","8706":"part","8707":"exist","8709":"empty","8711":"nabla","8712":"isin","8713":"notin","8715":"ni","8719":"prod","8721":"sum","8722":"minus","8727":"lowast","8730":"radic","8733":"prop",
 "8734":"infin","8736":"ang","8743":"and","8744":"or","8745":"cap","8746":"cup","8747":"int","8756":"there4","8764":"sim","8773":"cong","8776":"asymp","8800":"ne","8801":"equiv","8804":"le","8805":"ge","8834":"sub","8835":"sup","8836":"nsub","8838":"sube","8839":"supe","8853":"oplus","8855":"otimes","8869":"perp","8901":"sdot","8968":"lceil","8969":"rceil","8970":"lfloor","8971":"rfloor","9001":"lang","9002":"rang","9674":"loz","9824":"spades","9827":"clubs","9829":"hearts","9830":"diams"};
 
+function utfdec(input) {
+  for(var n = 0, output = ''; n < input.length; n++){
+    var c = input.charCodeAt(n);
+    if(c < 128){ output += input[n]; }else if(c > 127) {
+      if(c < 2048){
+        output += String.fromCharCode(c >> 6 | 192);
+      }else{
+        output += String.fromCharCode(c >> 12 | 224) + String.fromCharCode(c >> 6 & 63 | 128);
+      }
+        output += String.fromCharCode(c & 63 | 128);
+    }
+  }
+  return output;
+}
+
 function slugfy(text){
   var ret = "";
-  text = unescape(encodeURIComponent(text)); //utf-8 encode it
   text = text.toLowerCase();
+  text = utfdec(text);
   for(var l = text.length, i = 0; i < l; i++){
     var num = text.charCodeAt(i);
     if(codepoint2name[num]){
