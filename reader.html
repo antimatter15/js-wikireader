@@ -50,8 +50,8 @@ a:active {
   color: #FAA700;
 }
 
-#viewsrc:active {
-  display: block;
+#viewsrc {
+  font-family: monospace;
 }
 a.new {
   color: #C20;
@@ -61,7 +61,7 @@ a.new {
 
 </head>
 <body>
-<div style="padding: 10px; float: right; display:none" id="searchbox">
+<div style="padding: 10px; float: right; visibility:hidden" id="searchbox">
   <input type="text" id="search" style="width: 200px; border: 1px solid gray;margin-bottom: 0" placeholder="Search here">
   <div style="font-size: small; border: 1px solid gray; width: 200px; margin-top: 0px; padding-top: 9px; padding-bottom: 10px; border-top: none; background-color: #F3F3F3;">
     <ol id="results">
@@ -75,24 +75,21 @@ a.new {
 <select id="dumpselect">
   <option value="_add">Add More</option>
 </select>
-<button onclick="loadRandomPage()">Random Article</button>
+<div id="toolbar" style="visibility:hidden; display:inline">
+  <button onclick="loadRandomPage()">Random</button>
+</div>
 </div>
 
-<div id="page" style="padding: 10px">
+<article id="page" style="padding: 10px"></article>
 
-
-</div>
-
-<div id="setup" style="display:none">
+<div id="setup" style="display:none; padding: 10px">
 <img src="bunny.jpg" width="300" style="float:left;padding-right: 25px">
 <input type="file" id="fileselect" style="position:absolute;top: 219px;left: 33px;background-color: orange;border-radius: 14px;padding: 5px;">
 <div>
 <h1>Feed the bunny!</h1>
 <p>
 or else...
-</p>
-<p>
-Well, I'm not sure, but I guess the bunny will attack you.
+Well, I'm not sure, but I guess she will attack you.
 </p>
 <p>
 Before she eats your brains, please note that this is a very special type of bunny. This bunny feeds on knowledge, so you must feed her a specially formatted wikipedia dump file so she can find her way around the scary offline world.
@@ -100,7 +97,17 @@ Before she eats your brains, please note that this is a very special type of bun
 </div>
 </div>
 <footer>
+<hr>
+<div id="debug">
+<div style="float: right">
+<a href="javascript:toggleDebug()" id="debugMode">Debug On</a>
+</div>
 
+<div id="viewsrc"></div>
+</debug>
+<div style="font-size: x-small">
+		  written by <a href="http://twitter.com/antimatter15">@antimatter15</a> (please follow me on twitter). email comments and concerns to antimatter15@gmail.com.
+		</div>
 </footer>
 
 <script src="slugfy.js"></script>
@@ -109,7 +116,21 @@ Before she eats your brains, please note that this is a very special type of bun
 <script src="LZMA_simple.js"></script>
 <script src="binsearch.js"></script>
 <script>
-debug = 1;
+debug = localStorage.debug == 'true';
+
+function toggleDebug(){
+  debug = !debug;
+  updateDebug();
+}
+
+function updateDebug(){
+  var vs = document.getElementById('viewsrc');
+  vs.style.display = debug ? '' : 'none';
+  document.getElementById('debugMode').innerHTML = debug ? 'Debug Off': 'Debug On';
+  localStorage.debug = debug + '';
+}
+
+updateDebug();
 //*
 document.body.onclick = function(e){
   if(e.button == 0 && e.target.tagName.toLowerCase() == 'a'){
@@ -133,13 +154,17 @@ function updateSelection(){
   var select = document.getElementById('dumpselect');
   if(select.value == '_add'){
     document.getElementById("setup").style.display = '';
+    document.getElementById("debug").style.display = 'none';
     document.getElementById("page").style.display = 'none';
-    document.getElementById("searchbox").style.display = 'none';
+    document.getElementById("searchbox").style.visibility = 'hidden';
+    document.getElementById("toolbar").style.visibility = 'hidden';
   }else{
     localStorage._current = select.value;
     loadDump(select.value);
+    document.getElementById("debug").style.display = '';
     document.getElementById("page").style.display = '';
-    document.getElementById("searchbox").style.display = '';
+    document.getElementById("searchbox").style.visibility = '';
+    document.getElementById("toolbar").style.visibility = '';
     document.getElementById("setup").style.display = 'none'
   }
 }
@@ -167,9 +192,10 @@ document.getElementById('fileselect').onchange = function(e){
   fr.readAsText(file.slice(0,40))
 }
 
-var lastart = 0;
+var lastart = 0, lastquery = '';
 document.getElementById('search').onkeyup = function(){
-  if(this.value.length == 0) return;
+  if(this.value.length == 0 || lastquery == this.value) return;
+  lastquery = this.value;
   runSearch(this.value, function(results, levdict){
     displayResults(results, levdict);
     var name = results[0][0];
@@ -225,7 +251,7 @@ function runSearch(query, callback, exactness){
         else return item.split(';');
       })
       var levdict = {};
-      console.log(results.map(function(x){return x[0]}));
+      //console.log(results.map(function(x){return x[0]}));
       results.forEach(function(item){
         levdict[item[0]] = scoreResult(item[0], query)
       });
@@ -290,10 +316,26 @@ function loadDump(code){
   
   })
 }
-
+var linkcache = {};
+function checkLink(link){
+  var title = unescape(link.href.replace(/^.*\?/,'').replace(/\#.*$/,''));
+  if(title in linkcache){
+    if(linkcache[title]) link.className += ' new';
+  }else{
+    setTimeout(function(){
+      runSearch(title, function(results, levdict){
+        linkcache[title] = levdict[results[0][0]] > 1;
+        //console.log(title, results, levdict);
+        if(levdict[results[0][0]] > 1){
+          link.className += ' new'
+        }
+      }, 250)
+    },0);
+  }
+}
 function checkLinks(){
-  for(var i = 0; i < document.links.length; i++){
-    console.log(document.links[i].href)
+  for(var i = 0, links = document.getElementById('page').getElementsByTagName('a'); i < links.length; i++){
+    checkLink(links[i]);
   }
 }
 
@@ -364,16 +406,24 @@ function decodeArticle(title, blockpos, blocksize){
     
     p.innerHTML = '';
     
+    article = article.replace(/\{\{([^\n\|]+)\|([^\n\|]+)}\}/g,' $1 $2 ');
+    //article = article.replace(/\=+Pronunciation\=+[^\=]+(=+)/gi, '$1')
+    article = article.replace(/\{\{t.?\|(\w\w)\|([^\|]+?)(\|[^\}]+?)?\}\}/g, '  $2  ')
+    article = article.replace(/\{\{([\w ]+?)\}\}/g, '  <tt>$1</tt>  ')
     p.innerHTML = wikiParse(article);
-    
     
     scrollTo(state[0]||0,state[1]||0)
     state = {};
     
     document.title = title;
-    if(window.debug){
-      p.innerHTML += '<hr><a href="javascript:document.getElementById(\'viewsrc\').style.display=\'\'">Show Source</a><div id="viewsrc" style="display:none"><pre>'+article+'</pre></div>';
-    }
+
+    document.getElementById('viewsrc').innerText = article;
+    setTimeout(function(){
+      if(document.title == title){
+        checkLinks();
+      }
+    },1000)
+    
     //console.log(+new Date);
   }
   fr.readAsBinaryString(dump.slice(blockpos, blocksize)) //todo: handle fringe cases where results are huge
