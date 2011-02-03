@@ -61,8 +61,11 @@ a.new {
 
 </head>
 <body>
-<div style="padding: 10px; float: right; visibility:hidden" id="searchbox">
-  <input type="text" id="search" style="width: 200px; border: 1px solid gray;margin-bottom: 0" placeholder="Search here">
+
+
+
+<div style="float: right; " id="searchbox">
+  <input autofocus type="text" id="search" style="width: 200px; border: 1px solid gray;margin-bottom: 0" placeholder="Search here" tabindex="3">
   <div style="font-size: small; border: 1px solid gray; width: 200px; margin-top: 0px; padding-top: 9px; padding-bottom: 10px; border-top: none; background-color: #F3F3F3;">
     <ol id="results">
       Start searching
@@ -70,13 +73,12 @@ a.new {
   </div>
 </div>
 
-<div  style="padding:10px; float: right">
-
-<select id="dumpselect">
+<div style="padding-right: 5px; float: right">
+<select id="dumpselect"  tabindex="1">
   <option value="_add">Add More</option>
 </select>
 <div id="toolbar" style="visibility:hidden; display:inline">
-  <button onclick="loadRandomPage()">Random</button>
+  <button onclick="loadRandomPage()"  tabindex="2">Random</button>
 </div>
 </div>
 
@@ -113,7 +115,6 @@ Before she eats your brains, please note that this is a very special type of bun
 <script src="slugfy.js"></script>
 <script src="render.js"></script>
 <script src="damlev.js"></script>
-<script src="LZMA_simple.js"></script>
 <script src="binsearch.js"></script>
 <script>
 debug = localStorage.debug == 'true';
@@ -144,6 +145,18 @@ document.body.onclick = function(e){
     }
   }
 }//*/
+
+
+document.onkeyup = function(e){
+  //console.log(e);
+  //*
+  if(e.target.tagName.toLowerCase() != 'input' && String.fromCharCode(e.keyCode).toLowerCase() == 's'){
+    document.getElementById('search').focus();
+    document.getElementById('search').select();
+  }
+  //*/
+  
+}
 
 var pagescrolls = {};
 
@@ -195,8 +208,11 @@ document.getElementById('fileselect').onchange = function(e){
 var lastart = 0, lastquery = '';
 document.getElementById('search').onkeyup = function(){
   if(this.value.length == 0 || lastquery == this.value) return;
+  //var searchstart = +new Date;
+  
   lastquery = this.value;
   runSearch(this.value, function(results, levdict){
+    //console.log(+new Date - searchstart, 'time to process query')
     displayResults(results, levdict);
     var name = results[0][0];
     loadArticle(name) //todo: optimize for redirects.
@@ -210,7 +226,7 @@ document.getElementById('search').onkeyup = function(){
 
 
 function scoreResult(result, query){
-  return damlev(result.substr(0, query.length), query) * 0.3 + damlev(result.substr(0, query.length).toLowerCase(), query.toLowerCase()) * 0.2 + Math.abs(query.length - result.length) * 0.1
+  return damlev(result.substr(0, query.length), query) * 0.5 + damlev(result.substr(0, query.length).toLowerCase(), query.toLowerCase()) + Math.abs(query.length - result.length) * 0.1
 }
 
 function displayResults(results, levdict){
@@ -261,7 +277,7 @@ function runSearch(query, callback, exactness){
       callback(results, levdict);
     }
     fr.readAsText(index.slice(size - 250, exactness + 250), 'utf-8')
-  }, exactness + 500)
+  }, exactness)
 }
 
 
@@ -318,25 +334,55 @@ function loadDump(code){
 }
 var linkcache = {};
 function checkLink(link){
+  var minvalid = 3;
   var title = unescape(link.href.replace(/^.*\?/,'').replace(/\#.*$/,''));
   if(title in linkcache){
     if(linkcache[title]) link.className += ' new';
   }else{
     setTimeout(function(){
+      if(title in linkcache){
+        if(linkcache[title]) link.className += ' new';
+        return
+      }
+     
       runSearch(title, function(results, levdict){
-        linkcache[title] = levdict[results[0][0]] > 1;
+        linkcache[title] = levdict[results[0][0]] > minvalid;
+        //console.log(results[0][0], levdict[results[0][0]], results);
         //console.log(title, results, levdict);
-        if(levdict[results[0][0]] > 1){
+        if(levdict[results[0][0]] > minvalid){
           link.className += ' new'
         }
-      }, 250)
-    },0);
+      }, 500)
+    },300);
   }
 }
 function checkLinks(){
+  var list = [];
   for(var i = 0, links = document.getElementById('page').getElementsByTagName('a'); i < links.length; i++){
-    checkLink(links[i]);
+    list.push(links[i]);
   }
+  var process = function(){
+    var link = list.shift();
+    if(!link || !link.parentNode){
+      list = null;
+      return;
+    };
+    var title = unescape(link.href.replace(/^.*\?/,'').replace(/\#.*$/,''));
+    if(title in linkcache){
+      if(linkcache[title]) link.className += ' new';
+      process();
+    }else{
+      runSearch(title, function(results, levdict){
+        linkcache[title] = levdict[results[0][0]] > 1;
+        //console.log(results[0][0], levdict[results[0][0]], results);
+        //console.log(title, results, levdict);
+        if(levdict[results[0][0]] > 1) link.className += ' new';
+        process();
+      }, 500);
+      //setTimeout(process, 10);
+    }
+  }
+  process();
 }
 
 //*
@@ -360,71 +406,94 @@ function loadURL(){
 }
 
 function loadArticle(title){
+  //var startLoad = +new Date;
   runSearch(title, function(results){
     if(results[0][2]) return loadArticle(results[0][1]); //handle redirects.
     var title = results[0][0],
         blockpos = parseInt(results[0][1],10);
-    //console.log('finished search', +new Date);
+    //console.log('finished load article', +new Date - startLoad);
+    
     decodeArticle(title, blockpos, 60000);
   }, 1000)
 }
 
 
 var state = [];
+var lastworker = null;
+
 function decodeArticle(title, blockpos, blocksize){
+  if(lastworker) lastworker.terminate();
+  //var startLoad = +new Date;
   var fr = new FileReader();
   fr.onload = function(){
+    var worker = new Worker('LZMA_simple.js');
+    lastworker = worker;
+    //console.log(+new Date - startLoad, 'time to download article')
+    worker.addEventListener('error', function(e){ 
+      console.log('LZMA decompression error', e);
+    }, false)
+    worker.addEventListener('message', function(e){
+      var block = e.data;
+      var p = document.getElementById('page');
+      if(lastworker) lastworker.terminate();
+      
+      if(block == 'false'){
+        p.innerHTML = 'Error in decompressing LZMA archive. Block index: '+blockpos+' Title: '+title;
+        //this gives the size of the decoded thing if it doesnt fit.
+        //however, we want the compressed size. not the final size.
+        //but it doesnt really matter
+        var truesize = fr.result.slice(5, 5 + 8).split('').map(function(x){
+          return x.charCodeAt(0)
+        }).map(function(num, pos){
+          return num * Math.pow(256, pos)
+        }).reduce(function(a,b){
+          return a+b
+        });
+        
+        if(blocksize < 0.8 * truesize){
+          console.log('trying again');
+          return decodeArticle(title, blockpos, blocksize);
+        }
+        return
+      };
+      var artpos = block.indexOf('='+title+'=\n\n\n\n');
+      var article = block.substr(artpos);
+      var match = article.substr(4).match(/=[^\n=]*?=\n\n\n\n/);
+      if(match) article = article.substr(0, match.index + 4);
+      
+      document.getElementById('viewsrc').innerText = article;
+      
+      article = article.replace(/\n\n\n\n/, '\n\n')
+      
+      //console.log(article);
+      //console.log(+new Date - startLoad, 'time to decode article')
+      p.innerHTML = '';
+      
+      article = article.replace(/\{\{([^\n\|]+)\|([^\n\|]+)}\}/g,' $1 $2 ');
+      //article = article.replace(/\=+Pronunciation\=+[^\=]+(=+)/gi, '$1')
+      article = article.replace(/\{\{t.?\|(\w\w)\|([^\|]+?)(\|[^\}]+?)?\}\}/g, '  $2  ')
+      article = article.replace(/\{\{([\w ]+?)\}\}/g, '  <tt>$1</tt>  ')
+      p.innerHTML = wikiParse(article);
+      
+      scrollTo(state[0]||0,state[1]||0)
+      state = {};
+      
+      document.title = title;
+
+      setTimeout(function(){
+        if(document.title == title) checkLinks();
+      },100);
+      //console.log(+new Date);
+      //console.log(+new Date - startLoad, 'time to render')
+    
+    }, false);
+    /*
     var blockarr = fr.result.split('').map(function(x){
       return x.charCodeAt(0)
     });
     var block = LZMA.decompress(blockarr);
-    var p = document.getElementById('page');
-    if(block == false){
-      p.innerHTML = 'Error in decompressing LZMA archive. Block index: '+blockpos+' Title: '+title;
-      //this gives the size of the decoded thing if it doesnt fit.
-      //however, we want the compressed size. not the final size.
-      //but it doesnt really matter
-      var truesize = blockarr.slice(5, 5 + 8).map(function(num, pos){
-        return num * Math.pow(256, pos)
-      }).reduce(function(a,b){
-        return a+b
-      });
-      
-      if(blocksize < 0.8 * truesize){
-        console.log('trying again');
-        return decodeArticle(title, blockpos, blocksize);
-      }
-      
-      return
-    };
-    var artpos = block.indexOf('='+title+'=\n\n\n\n');
-    var article = block.substr(artpos);
-    var match = article.substr(4).match(/=[^\n=]*?=\n\n\n\n/);
-    if(match) article = article.substr(0, match.index + 4);
-    article = article.replace(/\n\n\n\n/, '\n\n')
-    //console.log(article);
-    
-    p.innerHTML = '';
-    
-    article = article.replace(/\{\{([^\n\|]+)\|([^\n\|]+)}\}/g,' $1 $2 ');
-    //article = article.replace(/\=+Pronunciation\=+[^\=]+(=+)/gi, '$1')
-    article = article.replace(/\{\{t.?\|(\w\w)\|([^\|]+?)(\|[^\}]+?)?\}\}/g, '  $2  ')
-    article = article.replace(/\{\{([\w ]+?)\}\}/g, '  <tt>$1</tt>  ')
-    p.innerHTML = wikiParse(article);
-    
-    scrollTo(state[0]||0,state[1]||0)
-    state = {};
-    
-    document.title = title;
-
-    document.getElementById('viewsrc').innerText = article;
-    setTimeout(function(){
-      if(document.title == title){
-        checkLinks();
-      }
-    },1000)
-    
-    //console.log(+new Date);
+    */
+    worker.postMessage(fr.result);
   }
   fr.readAsBinaryString(dump.slice(blockpos, blocksize)) //todo: handle fringe cases where results are huge
   //todo: get this window from ratio + window size from metadata

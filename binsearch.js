@@ -8,10 +8,10 @@ function binsearch(start, len, slug, callback, mindow){
     var arr = fr.result.split('\n');
     var mid = slugfy(arr[1]); //this is the entry on the index. slugify the whole thing.
     if(mid > slug){
-      //console.log(mid,'>',slug)
-      binsearch(start, Math.round(len/2) + win, slug, callback, mindow);
+      console.log(mid,'>',slug)
+      binsearch(start , Math.round(len/2) + win, slug, callback, mindow);
     }else{
-      //console.log(mid,'<',slug);
+      console.log(mid,'<',slug);
       binsearch(start + Math.round(len/2) - win, Math.round(len/2) + 2 * win, slug, callback, mindow);
     }
   }

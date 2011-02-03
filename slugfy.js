@@ -22,6 +22,7 @@ function utfdec(input) {
 }
 
 function slugfy(text){
+  if(!text) return '';
   var ret = "";
   text = text.toLowerCase();
   text = utfdec(text);
