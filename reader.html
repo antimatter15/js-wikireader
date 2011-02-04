@@ -197,6 +197,10 @@ document.getElementById('fileselect').onchange = function(e){
         fileEntry.createWriter(function(fileWriter) {
           fileWriter.write(file);
           console.log('writing dump')
+          setTimeout(function(){
+            localStorage._current = meta.code;
+            findDumps();
+          }, 500)
         }, errorHandler);
       }, errorHandler);
     }
@@ -469,10 +473,15 @@ function decodeArticle(title, blockpos, blocksize){
       //console.log(+new Date - startLoad, 'time to decode article')
       p.innerHTML = '';
       
+      article = article.replace(/\{\{etyl.*?\}\}/gi,'');
       article = article.replace(/\{\{([^\n\|]+)\|([^\n\|]+)}\}/g,' $1 $2 ');
       //article = article.replace(/\=+Pronunciation\=+[^\=]+(=+)/gi, '$1')
       article = article.replace(/\{\{t.?\|(\w\w)\|([^\|]+?)(\|[^\}]+?)?\}\}/g, '  $2  ')
       article = article.replace(/\{\{([\w ]+?)\}\}/g, '  <tt>$1</tt>  ')
+      article = article.replace(/\{\{IPA\|(.*?)(\|.*?)?\}\}/g, '  <tt>$1</tt>  ')
+      article = article.replace(/\{\{term\|+(.*?)(\|.*?)?\}\}/gi, '  <tt>$1</tt>  ')
+      article = article.replace(/\{\{proto\|(.*?)\|(.*?)(\|.*?)?\}\}/gi, '  <tt>$2</tt>  ')
+      
       p.innerHTML = wikiParse(article);
       
       scrollTo(state[0]||0,state[1]||0)
