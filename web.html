@@ -112,19 +112,16 @@ a.new {
 </div>
 
 <div style="padding-right: 5px; float: right">
-<select id="dumpselect"  tabindex="1">
-  <option value="_add">Add More</option>
-</select>
 <div id="toolbar" style="visibility:hidden; display:inline">
   <button onclick="loadRandomPage()"  tabindex="2">Random</button>
 </div>
 </div>
 
-<article id="page" style="padding: 10px"></article>
+<article id="page" style="padding: 10px">
 
-<div id="setup" style="display:none; padding: 10px">
+<div id="setup" style="">
 <img src="bunny.jpg" width="300" style="float:left;padding-right: 25px">
-<input type="file" id="fileselect" style="position:absolute;top: 219px;left: 33px;background-color: orange;border-radius: 14px;padding: 5px;">
+<input type="file" id="fileselect" style="">
 <div style="padding-top: 10px">
 <h1>Feed the bunny!</h1>
 <p>
@@ -136,6 +133,9 @@ This is a very special type of bunny. This bunny feeds on knowledge, so you must
 </p>
 </div>
 </div>
+</article>
+
+
 <footer>
 <hr>
 <div id="debug">
@@ -207,27 +207,15 @@ document.onkeyup = function(e){
 
 var pagescrolls = {};
 
-var fs = null;
-document.getElementById('dumpselect').onchange = updateSelection;
+//var fs = null;
+//document.getElementById('dumpselect').onchange = updateSelection;
 
-function updateSelection(){
-  var select = document.getElementById('dumpselect');
-  if(select.value == '_add'){
-    document.getElementById("setup").style.display = '';
-    document.getElementById("debug").style.display = 'none';
-    document.getElementById("page").style.display = 'none';
-    document.getElementById("searchbox").style.visibility = 'hidden';
-    document.getElementById("toolbar").style.visibility = 'hidden';
-  }else{
-    localStorage._current = select.value;
-    loadDump(select.value);
-    document.getElementById("debug").style.display = '';
-    document.getElementById("page").style.display = '';
-    document.getElementById("searchbox").style.visibility = '';
-    document.getElementById("toolbar").style.visibility = '';
-    document.getElementById("setup").style.display = 'none'
-  }
-}
+document.getElementById("setup").style.display = '';
+document.getElementById("debug").style.display = 'none';
+//document.getElementById("page").style.display = 'none';
+document.getElementById("searchbox").style.visibility = 'hidden';
+document.getElementById("toolbar").style.visibility = 'hidden';
+
 document.getElementById('fileselect').onchange = function(e){
   var file = this.files[0];
   console.log(file);
@@ -235,23 +223,22 @@ document.getElementById('fileselect').onchange = function(e){
   var fr = new FileReader();
   fr.onload = function(){
     var metasize = parseInt(fr.result.substr(0,20), 10);
+    var indexsize = parseInt(fr.result.substr(20,20), 10);
     var mr = new FileReader();
     mr.onload = function(){
       var meta = JSON.parse(mr.result);
-      localStorage[meta.code] = meta.name;
-      var name = meta.code;
-      fs.root.getFile(name+".dump", {create: true, exclusive: false}, function(fileEntry) {
-        fileEntry.createWriter(function(fileWriter) {
-          fileWriter.write(file);
-          console.log('writing dump')
-          setTimeout(function(){
-            localStorage._current = meta.code;
-            findDumps();
-          }, 500)
-        }, errorHandler);
-      }, errorHandler);
+      localStorage[meta.code] = meta.name; //hash to have prettier names.
+      
+    document.getElementById("debug").style.display = '';
+    document.getElementById("page").style.display = '';
+    document.getElementById("searchbox").style.visibility = '';
+    document.getElementById("toolbar").style.visibility = '';
+    document.getElementById("setup").style.display = 'none'
     }
     mr.readAsText(file.slice(40, metasize));
+    index = file.slice(40 + metasize, indexsize);
+    dump = file.slice(40 + metasize + indexsize, file.size);
+    console.log('loaded index and dump')
   }
   fr.readAsText(file.slice(0,40))
 }
@@ -378,32 +365,6 @@ function loadRandomPage(){
 var index, dump;
 
 
-function loadDump(code){
-  console.log('loading dump',code);
-  fs.root.getFile(code+'.dump', {create:false}, function(e){
-    e.file(function(file){
-      var fr = new FileReader();
-      fr.onload = function(){
-        var metasize = parseInt(fr.result.substr(0,20), 10);
-        var indexsize = parseInt(fr.result.substr(20,20), 10);
-        var mr = new FileReader();
-        mr.onload = function(){
-          var meta = JSON.parse(mr.result);
-          localStorage[meta.code] = meta.name; //hash to have prettier names.
-          
-          //loadArticle(location.search.substr(1))
-        }
-        mr.readAsText(file.slice(40, metasize));
-        index = file.slice(40 + metasize, indexsize);
-        dump = file.slice(40 + metasize + indexsize, file.size);
-        console.log('loaded index and dump')
-      }
-      fr.readAsText(file.slice(0,40))
-    })
-  }, function(){
-  
-  })
-}
 var linkcache = {};
 function checkLink(link){
   var minvalid = 3;
@@ -464,7 +425,6 @@ setInterval(function(){
 //*/
 onpopstate = function(e){
   if(location.search.length <= 1){
-    document.getElementById('page').innerHTML = '<img src="xkcd.png">';
   }else{
     state = pagescrolls[unescape(location.search.substr(1))] || [];
     loadURL();
@@ -576,49 +536,7 @@ function decodeArticle(title, blockpos, blocksize){
   //todo: get this window from ratio + window size from metadata
 }
 
-
-function onInitFs(hfs) {
-  fs = hfs; //set an evil global
-  console.log('Opened file system: ' + fs.name);
-  findDumps();
-}
-
-
-function findDumps(){
-  var dirReader = fs.root.createReader();
-  var entries = [];
-  var readEntries = function(){
-    dirReader.readEntries(function(results){
-      if(!results.length){
-        var select = document.getElementById('dumpselect');
-        while(select.options.length > 1) select.removeChild(select.options[0]);
-        var addmore = select.options[0];
-        entries.forEach(function(item){
-          if(/\.dump$/.test(item.name)){
-            var code = item.name.replace('.dump','');
-            var opt = document.createElement('option');
-            opt.innerHTML = localStorage[code] || code;
-            if(code == localStorage._current){
-              opt.setAttribute('selected','selected');
-            }
-            opt.value = code;
-            select.insertBefore(opt, addmore);
-          }
-        });
-        updateSelection();
-      }else{
-        entries = entries.concat([].slice.call(results, 0));
-        readEntries();
-      }
-    }, errorHandler);
-  }
-  readEntries();
-}
-
-function errorHandler(){
-  console.log('Error');
-}
-window.requestFileSystem(window.PERSISTENT, 10*1024*1024*1024 /*GB*/, onInitFs, errorHandler);
+//window.requestFileSystem(window.PERSISTENT, 10*1024*1024*1024 /*GB*/, onInitFs, errorHandler);
 
 
 </script>
