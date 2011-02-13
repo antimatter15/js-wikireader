@@ -133,6 +133,18 @@ function inevitably_futile_digital_rights_management_advanced_proprietary_asymme
   
   return 2;
 }
+/*
+0000001, 00000011
+000000111, 00001111
+0000001, 00000011
+000000111, 00001111
+
+The humans are dead. and Uh....
+The next part of this document is encrypted with the state of the art
+ASCII/UTF-8 encryption standard. It must not be turned into human readable
+text under penalty of death as perscribed by the fullest extent of the DMCA
+and the ACTA treaty.
+*/
 
 function load_list(){
   var xhr = new XMLHttpRequest();
