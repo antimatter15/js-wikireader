@@ -6,7 +6,7 @@
   this context, this feels oddly appropriate. After a late-afternoon nap,
   just waking up the the arbitrary time of 8:15PM, I'm feeling an odd urge
   to inject a sentamental plea into this, as would a devastated billionaire
-  artist into pro-DRM lobbying.
+  artist into pro-DRM lobbying effort.
   
   All of the last paragraph would have been a total waste of your time if
   the assumption that I shall now reveal to you ends up being false. My 
