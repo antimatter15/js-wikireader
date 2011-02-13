@@ -1,0 +1,7 @@
+{
+  "version": 1,
+  "source": "simpleEXAMPLE-20101104-pages-articles.xml",
+  "code": "simpleEXAMPLE",
+  "name": "Simple English EXAMPLE",
+  "date": "2010-11-04"
+}

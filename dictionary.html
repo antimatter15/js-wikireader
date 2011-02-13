@@ -104,53 +104,37 @@ a.new {
 
 <div style="float: right; " id="searchbox">
   <input autofocus type="text" id="search" style="width: 200px; border: 1px solid gray;margin-bottom: 0" placeholder="Search here" tabindex="3">
-  <div id="resultcontainer">
+  <button onclick="loadRandomPage()"  tabindex="2">Random</button>
+  <div id="resultcontainer" style="display:none">
     <div id="results">
     </div>
     <!--<a id="closesearch" onclick="document.getElementById('results').innerHTML='Start searching'">x</a>-->
   </div>
 </div>
 
-<div style="padding-right: 5px; float: right">
+<div style="padding-right: 5px; float: right; display:none;">
 <select id="dumpselect"  tabindex="1">
   <option value="_add">Add More</option>
 </select>
 <div id="toolbar" style="visibility:hidden; display:inline">
-  <button onclick="loadRandomPage()"  tabindex="2">Random</button>
 </div>
-</div>
-
-
-<div id="setup" style="display:;">
-  <div style='padding:none'>
-    <h1>Add Dumps</h1>
-    <p>
-      So, this is a Wikipedia dump reader and obviously needs dumps to read. Most of them are actually huge so you have to download them here. But sadly, hosting multi-gigabyte files sadly isn't free. Am I perniciously profiteering off the chivalrous charity work of millions of idealistically inclined normal netizens in a blatantly bad and extraordinarily evil scheme to garner a figurative fortune? You could say so, but I would obviously prefer you think of it another way, one that includes far fewer alliterating adjectives. Rather, think of the money as stuff that goes to the hardware, time and infrastructure costs and for incentivizing me to continue development on this project that are used to deliver your beloved files as quickly as possible.
-    </p>
-    <p>
-      But I recognize that it's rather likely that nobody will find this app useful, and the dumps will quickly fall out of date. Or there might be some obscure dump you want and don't feel like asking me to add. Maybe you want it to include more information. Or less information. Or, maybe instead of paying me, you went and found a torrent for the dump file. So there is another way to acquire dumps, through the tedious process of downloading, installing dependencies, running a slow python script for hours, and running a few shell scripts. 
-    </p>
-  </div>
-  <div id="free" style="display:none">
-    <div style="background: url(bunny.jpg);width: 300px;height: 371px;float:left; margin: 10px">
-      <div style="margin-top: 205px;margin-right: 32px;margin-left: 35px;background-color: orange;border-radius: 14px;padding: 5px;">
-        <input type="file" id="fileselect">
-      </div>
-    </div>
-
-    <div style="padding-top: 10px">
-      <p>
-      Feed the bunny! or else...
-      Well, I'm not sure, but I guess she will attack you.
-      </p>
-      <p>
-      This is a very special type of bunny. This bunny feeds on knowledge, so you must feed her a specially formatted wikipedia dump file so she can find her way around the scary offline world. Or else, she will be forced to eat your brains.
-      </p>
-    </div>
-  </div>
 </div>
 
 <article id="page" style="padding: 10px"></article>
+
+<div id="setup" style="display:none; padding: 10px">
+<img src="bunny.jpg" width="300" style="float:left;padding-right: 25px">
+<input type="file" id="fileselect" style="position:absolute;top: 219px;left: 33px;background-color: orange;border-radius: 14px;padding: 5px;">
+<div style="padding-top: 10px">
+<h1>Feed the bunny!</h1>
+<p>
+or else...
+Well, I'm not sure, but I guess she will attack you.
+</p>
+<p>
+This is a very special type of bunny. This bunny feeds on knowledge, so you must feed her a specially formatted wikipedia dump file so she can find her way around the scary offline world. Or else, she will be forced to eat your brains.
+</p>
+</div>
 </div>
 <footer>
 <hr>
@@ -170,11 +154,8 @@ a.new {
 <script src="render.js"></script>
 <script src="damlev.js"></script>
 <script src="binsearch.js"></script>
-<script src="download.js"></script>
 <script>
 debug = localStorage.debug == 'true';
-#
-
 
 function toggleDebug(){
   debug = !debug;
@@ -288,7 +269,8 @@ document.getElementById('search').onkeyup = function(){
     loadArticle(name) //todo: optimize for redirects.
     
     if(+new Date - lastart > 3000) history.pushState({}, '', '?'+name);
-    else history.replaceState({}, '', '?'+name);
+
+    //else history.replaceState({}, '', '?'+name);
     
     lastart = +new Date;
   })

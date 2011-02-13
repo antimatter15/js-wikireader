@@ -1,3 +1,15 @@
+Creating a Formatted Wikipedia Dump:
+
+1. Download files from github
+2. Install pylzma (easy_install pylzma; note that you need to have python-dev installed)
+3. Download a Wikipedia dump (you should get pages-articles.xml.bz2) http://dumps.wikimedia.org/backup-index.html
+4. bzcat enwiktionary-20110205-pages-articles.xml.bz2 | python index.py
+5. python merge.py
+6. Create a wikidata.txt file in the same directory
+7. sh magic.sh
+8. This will create an omni.dump file. That's your magical dump. Rename it to whatever you like and import it to wikireader.
+
+
 http://www.openclipart.org/detail/606
 
 No idea why it's called carrot. I just saw this cool icon for a carrot on openclipart and thought, why not?
