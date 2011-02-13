@@ -150,8 +150,11 @@ function load_list(){
   var xhr = new XMLHttpRequest();
   xhr.open('GET', 'http://wikireader.commondatastorage.googleapis.com/dumps.txt', true);
   xhr.onload = function(){
+    document.getElementById('download')
+    var hosts = xhr.responseText.split('\n').slice(1);
   }
   xhr.onerror = function(){
+    document.getElementById('offline').style.display = '';
   }
   xhr.send(null);
 }
