@@ -1,4 +1,4 @@
-Creating a Formatted Wikipedia Dump:
+Creating a Formatted Wikipedia Dump (go to tools directory):
 
 1. Download files from github
 2. Install pylzma (easy_install pylzma; note that you need to have python-dev installed)
@@ -8,6 +8,10 @@ Creating a Formatted Wikipedia Dump:
 6. Create a wikidata.txt file in the same directory
 7. sh magic.sh
 8. This will create an omni.dump file. That's your magical dump. Rename it to whatever you like and import it to wikireader.
+
+Using JS-WikiReader:
+1. On Chrome, just load the directory from chrome://extensions
+2. On Firefox, open web.html and import the dump file
 
 
 http://www.openclipart.org/detail/606
