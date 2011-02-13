@@ -132,7 +132,7 @@ a.new {
     </p>
   </div>
   <div id="free" style="display:none">
-    <div style="background: url(bunny.jpg);width: 300px;height: 371px;float:left; margin: 10px">
+    <div style="background: url(image/bunny.jpg);width: 300px;height: 371px;float:left; margin: 10px">
       <div style="margin-top: 205px;margin-right: 32px;margin-left: 35px;background-color: orange;border-radius: 14px;padding: 5px;">
         <input type="file" id="fileselect">
       </div>
@@ -166,11 +166,11 @@ a.new {
 		</div>
 </footer>
 
-<script src="slugfy.js"></script>
-<script src="render.js"></script>
-<script src="damlev.js"></script>
-<script src="binsearch.js"></script>
-<script src="download.js"></script>
+<script src="js/slugfy.js"></script>
+<script src="js/render.js"></script>
+<script src="js/damlev.js"></script>
+<script src="js/binsearch.js"></script>
+<script src="js/download.js"></script>
 <script>
 debug = localStorage.debug == 'true';
 #
@@ -483,7 +483,7 @@ setInterval(function(){
 //*/
 onpopstate = function(e){
   if(location.search.length <= 1){
-    document.getElementById('page').innerHTML = '<img src="xkcd.png">';
+    document.getElementById('page').innerHTML = '<img src="image/xkcd.png">';
   }else{
     state = pagescrolls[unescape(location.search.substr(1))] || [];
     loadURL();
@@ -517,7 +517,7 @@ function decodeArticle(title, blockpos, blocksize){
   //var startLoad = +new Date;
   var fr = new FileReader();
   fr.onload = function(){
-    var worker = new Worker('LZMA_simple.js');
+    var worker = new Worker('js/LZMA_simple.js');
     lastworker = worker;
     //console.log(+new Date - startLoad, 'time to download article')
     worker.addEventListener('error', function(e){ 

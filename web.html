@@ -120,7 +120,7 @@ a.new {
 <article id="page" style="padding: 10px">
 
 <div id="setup" style="">
-<img src="bunny.jpg" width="300" style="float:left;padding-right: 25px">
+<img src="image/bunny.jpg" width="300" style="float:left;padding-right: 25px">
 <input type="file" id="fileselect" style="">
 <div style="padding-top: 10px">
 <h1>Feed the bunny!</h1>
@@ -150,10 +150,10 @@ This is a very special type of bunny. This bunny feeds on knowledge, so you must
 		</div>
 </footer>
 
-<script src="slugfy.js"></script>
-<script src="render.js"></script>
-<script src="damlev.js"></script>
-<script src="binsearch.js"></script>
+<script src="js/slugfy.js"></script>
+<script src="js/render.js"></script>
+<script src="js/damlev.js"></script>
+<script src="js/binsearch.js"></script>
 <script>
 debug = localStorage.debug == 'true';
 
@@ -458,7 +458,7 @@ function decodeArticle(title, blockpos, blocksize){
   //var startLoad = +new Date;
   var fr = new FileReader();
   fr.onload = function(){
-    var worker = new Worker('LZMA_simple.js');
+    var worker = new Worker('js/LZMA_simple.js');
     lastworker = worker;
     //console.log(+new Date - startLoad, 'time to download article')
     worker.addEventListener('error', function(e){ 
