@@ -120,21 +120,34 @@ a.new {
 </div>
 </div>
 
-<article id="page" style="padding: 10px"></article>
 
-<div id="setup" style="display:none; padding: 10px">
-<img src="bunny.jpg" width="300" style="float:left;padding-right: 25px">
-<input type="file" id="fileselect" style="position:absolute;top: 219px;left: 33px;background-color: orange;border-radius: 14px;padding: 5px;">
-<div style="padding-top: 10px">
-<h1>Feed the bunny!</h1>
-<p>
-or else...
-Well, I'm not sure, but I guess she will attack you.
-</p>
-<p>
-This is a very special type of bunny. This bunny feeds on knowledge, so you must feed her a specially formatted wikipedia dump file so she can find her way around the scary offline world. Or else, she will be forced to eat your brains.
-</p>
+<div id="setup" style="display:;">
+  <div style='padding:none'>
+    <h1>Add Dumps</h1>
+    <p>
+      So, this is a Wikipedia dump reader and obviously needs dumps to read. Most of them are actually huge so you have to download them here. But sadly, hosting multi-gigabyte files sadly isn't free. Am I perniciously profiteering off the chivalrous charity work of millions of idealistically inclined normal netizens in a blatantly bad and extraordinarily evil scheme to garner a figurative fortune? You could say so, but I would obviously prefer you think of it another way, one that includes far fewer alliterating adjectives.
+    </p>
+  </div>
+  <div id="free" style="display:none">
+    <div style="background: url(bunny.jpg);width: 300px;height: 371px;float:left; margin: 10px">
+      <div style="margin-top: 205px;margin-right: 32px;margin-left: 35px;background-color: orange;border-radius: 14px;padding: 5px;">
+        <input type="file" id="fileselect">
+      </div>
+    </div>
+
+    <div style="padding-top: 10px">
+      <p>
+      Feed the bunny! or else...
+      Well, I'm not sure, but I guess she will attack you.
+      </p>
+      <p>
+      This is a very special type of bunny. This bunny feeds on knowledge, so you must feed her a specially formatted wikipedia dump file so she can find her way around the scary offline world. Or else, she will be forced to eat your brains.
+      </p>
+    </div>
+  </div>
 </div>
+
+<article id="page" style="padding: 10px"></article>
 </div>
 <footer>
 <hr>
@@ -154,8 +167,11 @@ This is a very special type of bunny. This bunny feeds on knowledge, so you must
 <script src="render.js"></script>
 <script src="damlev.js"></script>
 <script src="binsearch.js"></script>
+<script src="download.js"></script>
 <script>
 debug = localStorage.debug == 'true';
+#
+
 
 function toggleDebug(){
   debug = !debug;

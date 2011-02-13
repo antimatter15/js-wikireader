@@ -1,5 +1,5 @@
 {
-  "name": "Carrot",
+  "name": "WikiReader",
   "description": "An offline wikipedia reader.",
   "version": "1",
   "app": {
@@ -13,6 +13,7 @@
   },
   "permissions": [
     "unlimitedStorage",
-    "notifications"
+    "notifications",
+    "http://wikireader.commondatastorage.googleapis.com/"
   ]
 }
