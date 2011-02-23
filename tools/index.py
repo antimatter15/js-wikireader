@@ -30,6 +30,10 @@ from cStringIO import StringIO
 {dictionarySize: 24, fb: 255, matchFinder: 1, lc: 3, lp: 0, pb: 2},
 {dictionarySize: 25, fb: 255, matchFinder: 1, lc: 3, lp: 0, pb: 2}
 """
+import time
+starttime = time.time()
+lastblock = starttime
+
 def compress_compatible(data):
   c = pylzma.compressfile(StringIO(data), algorithm = 0, dictionary = 16, fastBytes = 64)
   # LZMA header
@@ -58,22 +62,37 @@ def start_element(name, attrs):
   if name == "title":
     action = 1
   elif name == "text":
-    action = 2
+      action = 2
   #print 'Start element:', name, attrs
   
+  
+"""
+  RAW XML: 56.1MB
+  No Templates, No Regex: 44.1MB
+  Templates, No Regex: 45.6MB
+  
+  compressing medwik.txt 
+  900KB = 24%
+  100KB = 28% #2 = 27% #3/4/5/6/7/8/9 = 26%
+  50KB = 27% 
+  30KB = 24%
+  10KB = 29%
+"""
 def end_element(name):
   global action, page, title
   if name == "page":
     global total
     total += 1
-    if page != "" and title != "":
+    if page != "" and title != "" and re.match("\w+:", title) == None:
       global w, text_buffer, index_buffer, index, redirects
       page = page.encode('utf-8')
       title = title.encode('utf-8')
-      
+      #"""
+      page = re.sub(r'<!--.*-->', "", page)
       page = re.sub(r'<ref( \w+=.*)?>[^\<\>]*</ref>', "", page)
       page = re.sub(r'\[\[\s*[a-z]{2,3}(-[a-z]{1,3}(-[a-z]{1,3})?)?:.*\]\]\s*', "", page)
       page = re.sub(r'<!--[^>]*?-->', "", page)
+      #page = re.sub(r'([^\[])\[([a-z]+:[^ ]+?) ([^\]]+)\]([^\]])', "---------\1\3\4-------------", page)
       page = re.sub(r'\|\s*[\w_]+\s*=\s*\n', "", page)
       mx = re.search(r'={1,4}\s*?references\s*?={1,4}', page, re.IGNORECASE)
       if mx is not None: page = page[0: mx.start(0)]
@@ -81,10 +100,11 @@ def end_element(name):
       if mx is not None: page = page[0: mx.start(0)]
       mx = re.search(r'={1,4}\s*?other websites\s*?={1,4}', page, re.IGNORECASE)
       if mx is not None: page = page[0: mx.start(0)]
-      p = "=" + title + "=\n\n\n\n" + page
+      #"""
       
+      
+      p = "=" + title + "=\n\n\n\n" + page
       pln = len(p)
-
       #todo: escape ; occurances
       m = re.match('\#REDIRECT.*\[\[([^\]]+)\]\]', page, re.I)
       if m is not None:
@@ -105,12 +125,11 @@ def end_element(name):
         if len(text_buffer) + len(p) < 30000: #split into 100KB chunks
           text_buffer += p
         else:
-          if len(text_buffer) > 40000:
-            print "Warning: Insanely Huge Block"
-            print index_buffer
           compressed = compress_compatible(text_buffer)
           cln = len(compressed)
-          print "wrote sector length ",len(text_buffer), "compressed", cln
+          if len(text_buffer) > 40000:
+            print "Insanely Huge Block", index_buffer, "Size:", len(text_buffer), "Compressed: ", cln
+          #print "wrote sector length ",len(text_buffer), "compressed", cln
           w.write(compressed)
           index_buffer = []
           text_buffer = p
@@ -118,10 +137,13 @@ def end_element(name):
         index_buffer.append(title)
         index.write(slugfy(title) + ";"+ title + ";" + str(w.tell()) + "\n")
 
-      page = ""
-      title = ""
-      if total % 50 == 0:
-        print "Total: ",total
+    page = ""
+    title = ""
+    if total % 100 == 0:
+      global lastblock
+      elap = time.time() - starttime
+      print "Total: ",total, "Time Elapsed: ", elap, "Average Speed (art/s): ", total/elap, "Block Time", (time.time() - lastblock)
+      lastblock = time.time()
   action = 0
     
 
@@ -136,14 +158,19 @@ def char_data(data):
 
 p = xml.parsers.expat.ParserCreate()
 
+p.buffer_size = 1024 * 128
+p.buffer_text = True
+
 p.StartElementHandler = start_element
 p.EndElementHandler = end_element
 p.CharacterDataHandler = char_data
 
-
+import sys
+p.ParseFile(sys.stdin)
+"""
 import fileinput
 
 for line in fileinput.input():
     p.Parse(line)
 p.Parse("",1)
-
+"""
