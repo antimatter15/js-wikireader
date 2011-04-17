@@ -148,13 +148,76 @@ and the ACTA treaty.
 
 function load_list(){
   var xhr = new XMLHttpRequest();
-  xhr.open('GET', 'http://wikireader.commondatastorage.googleapis.com/dumps.txt', true);
+  xhr.open('GET', 'http://wikireader.commondatastorage.googleapis.com/dumps.json?'+Math.random(), true);
   xhr.onload = function(){
-    document.getElementById('download')
-    var hosts = xhr.responseText.split('\n').slice(1);
+    document.getElementById('download');
+    var attrs = ['name', 'size', 'date'];
+    JSON.parse(xhr.responseText).forEach(function(d){
+      var row = document.createElement('tr');
+      var installed = dumps.indexOf(d.code) != -1;
+      if(installed){
+        row.className += " installed"
+      }
+      attrs.forEach(function(a){
+        var t = document.createElement('td');
+        t.innerText = d[a];
+        row.appendChild(t);
+      });
+      var dow = document.createElement('td');
+      var a = document.createElement('a');
+      a.href = 'javascript:void(0)';
+      a.onclick = function(){
+        downloadFile(d.file, d.code)
+      }
+      a.innerText = installed?'Update':"Download";
+      dow.appendChild(a);
+      row.appendChild(dow);
+      document.getElementById('download').appendChild(row);
+      
+    })
   }
   xhr.onerror = function(){
     document.getElementById('offline').style.display = '';
+  }
+  xhr.send(null);
+}
+
+
+
+
+function downloadFile(file, code){
+  downloadFilePart(file, code);
+}
+
+
+function downloadFilePart(file, code){
+  var size = 1024 * 512; //chunk size
+  var pos = parseInt(localStorage['download_'+code] || 0, 10);
+  var xhr = new XMLHttpRequest();
+  xhr.open('GET', 'http://commondatastorage.googleapis.com/wikireader/'+file, true);
+  xhr.setRequestHeader('Range', pos + '-' + (pos + size)); //download half a megabyte at a time
+  xhr.onload = function(){
+    fs.root.getFile(code+'.dump', {create: true}, function(fileEntry) {
+      fileEntry.createWriter(function(fileWriter) {
+
+        var bin = xhr.responseText;
+        var arr = new Uint8Array(bin.length);
+        for(var i = 0, l = bin.length; i < l; i++)
+          arr[i] = bin.charCodeAt(i);
+        var bb = new BlobBuilder();
+        bb.append(arr.buffer);
+        var blob = bb.getBlob();
+        fileWriter.seek(pos);
+        fileWriter.write(blob);
+        if(blob.size < size){
+          //done
+          //delete localStorage['download_'+code];
+        }else{
+          localStorage['download_'+code] = (pos + size).toString();
+          downloadFilePart(file, code);
+        }
+      }, errorHandler);
+    }, errorHandler);
   }
   xhr.send(null);
 }

@@ -78,16 +78,22 @@ def start_element(name, attrs):
   30KB = 24%
   10KB = 29%
 """
+buflen = 0
 def end_element(name):
   global action, page, title
   if name == "page":
     global total
-    total += 1
     if page != "" and title != "" and re.match("\w+:", title) == None:
-      global w, text_buffer, index_buffer, index, redirects
+      global w, text_buffer, index_buffer, index, redirects, buflen
+      total += 1
+      if total % 100 == 0:
+        global lastblock
+        elap = time.time() - starttime
+        print "Total: ",total, "Time Elapsed: ", elap, "Average Speed (art/s): ", total/elap, "Block Time", (time.time() - lastblock)
+        lastblock = time.time()
       page = page.encode('utf-8')
       title = title.encode('utf-8')
-      #"""
+      """
       page = re.sub(r'<!--.*-->', "", page)
       page = re.sub(r'<ref( \w+=.*)?>[^\<\>]*</ref>', "", page)
       page = re.sub(r'\[\[\s*[a-z]{2,3}(-[a-z]{1,3}(-[a-z]{1,3})?)?:.*\]\]\s*', "", page)
@@ -106,9 +112,10 @@ def end_element(name):
       p = "=" + title + "=\n\n\n\n" + page
       pln = len(p)
       #todo: escape ; occurances
+      slug = slugfy(title)
       m = re.match('\#REDIRECT.*\[\[([^\]]+)\]\]', page, re.I)
       if m is not None:
-        redirects.write(slugfy(title) + ";" + title + ";" + m.group(1) + "\n")
+        redirects.write(slug + ";" + title + ";" + m.group(1) + "\n")
       else:
         #41.3 at 130000 algorithm #2
         #43.3 at 60000 algorithm #2
@@ -121,29 +128,27 @@ def end_element(name):
         #This number determines the size of the compression block.
         #js-lzma probably fails with anything over 130000
         #and also, bigger ones tend to be slower at decompression
-        #but have slightly better compression ratios. 
-        if len(text_buffer) + len(p) < 30000: #split into 100KB chunks
+        window = 100000
+        #but have slightly better compression ratios.
+        #buflen = len(text_buffer) 
+        if buflen + pln < window: #split into 100KB chunks
           text_buffer += p
+          buflen += pln
         else:
           compressed = compress_compatible(text_buffer)
           cln = len(compressed)
-          if len(text_buffer) > 40000:
+          if buflen > window + 10000:
             print "Insanely Huge Block", index_buffer, "Size:", len(text_buffer), "Compressed: ", cln
-          #print "wrote sector length ",len(text_buffer), "compressed", cln
           w.write(compressed)
           index_buffer = []
           text_buffer = p
-          
+          buflen = pln
         index_buffer.append(title)
-        index.write(slugfy(title) + ";"+ title + ";" + str(w.tell()) + "\n")
+        index.write(slug + ";"+ title + ";" + str(w.tell()) + "\n")
 
     page = ""
     title = ""
-    if total % 100 == 0:
-      global lastblock
-      elap = time.time() - starttime
-      print "Total: ",total, "Time Elapsed: ", elap, "Average Speed (art/s): ", total/elap, "Block Time", (time.time() - lastblock)
-      lastblock = time.time()
+
   action = 0
     
 
@@ -158,7 +163,7 @@ def char_data(data):
 
 p = xml.parsers.expat.ParserCreate()
 
-p.buffer_size = 1024 * 128
+p.buffer_size = 1024 * 1024
 p.buffer_text = True
 
 p.StartElementHandler = start_element
@@ -167,10 +172,8 @@ p.CharacterDataHandler = char_data
 
 import sys
 p.ParseFile(sys.stdin)
-"""
-import fileinput
 
-for line in fileinput.input():
-    p.Parse(line)
-p.Parse("",1)
-"""
+#do the stuff at the end
+compressed = compress_compatible(text_buffer)
+w.write(compressed)
+

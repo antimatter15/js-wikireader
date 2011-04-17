@@ -584,6 +584,7 @@ function onInitFs(hfs) {
   findDumps();
 }
 
+var dumps = [];
 
 function findDumps(){
   var dirReader = fs.root.createReader();
@@ -594,9 +595,11 @@ function findDumps(){
         var select = document.getElementById('dumpselect');
         while(select.options.length > 1) select.removeChild(select.options[0]);
         var addmore = select.options[0];
+        dumps = [];
         entries.forEach(function(item){
           if(/\.dump$/.test(item.name)){
             var code = item.name.replace('.dump','');
+            dumps.push(code);
             var opt = document.createElement('option');
             opt.innerHTML = localStorage[code] || code;
             if(code == localStorage._current){

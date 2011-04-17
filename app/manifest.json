@@ -1,0 +1,21 @@
+{
+  "name": "Offline Wiki",
+  "description": "An offline wikipedia reader.",
+  "version": "1",
+  "app": {
+    "launch": {
+      "local_path": "v2.html"
+    }
+  },
+  "icons": {
+    "16": "16.png",
+    "64": "64.png",
+    "128": "128.png"
+  },
+  "permissions": [
+    "unlimitedStorage",
+    "notifications",
+    "<all_urls>",
+    "http://wikireader.commondatastorage.googleapis.com/"
+  ]
+}
