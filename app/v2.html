@@ -2,31 +2,32 @@
 <html>
 	<head>
 		<meta charset="utf-8">
-		<link rel="stylesheet" href="wiky/wiky.css">
-		<link rel="stylesheet" href="wiky/wiky.lang.css">
-		<link rel="stylesheet" href="wiky/wiky.math.css">
 		<link rel="stylesheet" href="styles.css">
 		<title>Offline Wiki</title>
 	</head>
 	<body>
 		<header id="toolbar">
 			<div id="nav">
-				<a href="/Random">Random</a>
+			<div style="display:none;" id="download">
+				<span id="status"><b>Initializing</b></span> <progress id="progress" value=""></progress>
+			</div>
+				<a href="?Special:Index">Index</a>
+				<a href="?Special:Random">Random</a>
 				<input type="text" placeholder="Search" autocomplete=off spellcheck=off  id="search">
 			</div>
 			
-			<h1 id="title">Blah</h1>
+			<h1 id="title">Offline Wiki</h1>
 			
-			<div style=";padding:3px;padding-left: 9px;padding-right: 9px;display:none;position:absolute;right:350px; top: 7px" id="download">
-				<span id="status"><b>Initializing</b></span> <progress id="progress" value=""></progress>
-			</div>
+
 		</header>
 		
 		<div id="autocomplete" class="autocomplete" style="display:none; position: fixed; right: 20px; top: 28px"></div>
 	
 		<article id="content">
-			asdf<br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br>
-			asdf<br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br>
+			<p>
+			Hello.
+			</p>
+			<img src="image/xkcd.png">
 		</article>
 		<footer>
 			Offline Wiki was made by antimatter15.
@@ -35,10 +36,7 @@
 		<script src="js/autocomplete.js"></script>
 		<script src="js/slugfy.js"></script>
 		
-		<script src="wiky/wiky.js"></script>
-		<script src="wiky/wiky.lang.js"></script>
-		<script src="wiky/wiky.math.js"></script>
-		
+		<script src="js/render.js"></script>
 		
 		<script src="js/ui.js"></script>
 		<script src="js/damlev.js"></script>

@@ -4,7 +4,8 @@ var dumpsize = 55254607;
 var dumpurl = 'http://localhost/js-wikireader/app/tools/dump.lzma';
 var index, dump;
 
-var accessibleIndex = -1;
+var accessibleIndex = 0;
+var accessibleTitle = ''; //almost last accessible title
 var fs;
 
 var chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_', clookup = {};
@@ -24,15 +25,22 @@ window.requestFileSystem(window.PERSISTENT, 10*1024*1024*1024 /*10 GB*/, functio
 		console.log('loaded index');
 		loadDump(function(){
 			console.log('loaded dump');
-			downloadStatus(function(index){
-				console.log('accessible index: ', index);
-				accessibleIndex = index;
-			});
+			updateAccessibleIndex();
 			downloadIndex();
 			downloadDump();
 		});
 	});
 }, errorHandler);
+
+
+function updateAccessibleIndex(){
+	downloadStatus(function(index, title){
+		console.log('accessible index: ', index);
+		accessibleIndex = index;
+		accessibleTitle = title;
+		document.getElementById('status').innerHTML = '<b>Downloading</b> '+accessibleTitle;
+	});
+}
 
 function loadIndex(callback){
 	fs.root.getFile('dump.index', {create:true, exclusive: false}, function(e){
@@ -62,9 +70,9 @@ function downloadStatus(callback){
 	if(!index || !dump) return false;
 	if(dump.size < 1000 || index.size < 1000) return callback(0, 0, 0);
 	//get the current size of the accessible index.
-	binarySearch(dump.size, 0, index.size, 500, 1000, function(text){
+	binarySearch(dump.size, accessibleIndex, index.size, 500, 1000, function(text){
 		return parse64(text.match(/\n.+?\|([\w/_\-]+)/)[1])
-	}, function(low, high, result){	
+	}, function(low, high, result, text){	 //using the text arg is bad! but we're using this to save a bit of time
 		console.log(low, high, result);
 		readIndex(low, high - low, function(raw){
 			var text = utfdec(raw);
@@ -79,7 +87,8 @@ function downloadStatus(callback){
 				}
 				bytecount += lines[i].length + 1; //account for the newline
 			}
-			callback(low + bytecount, lastnum, bytecount);
+			var title = text.split('\n')[1].split(/\||\>/)[0];
+			callback(low + bytecount, title, lastnum, bytecount);
 		})
 	})
 }
@@ -93,7 +102,7 @@ function binarySearch(value, low, high, win, threshold, parser, callback){
 		var offset = text.split("\n")[0].length + 1;
 		  
 		if(high - low < threshold * 2){
-			return callback(low, high, result);
+			return callback(low, high, result, text);
 		}
 		//console.log(result, result < value ? '<' : '>', value);
 		if(result < value){
@@ -129,7 +138,7 @@ function readIndex(start, length, callback){
 function downloadDump(){
 	fs.root.getFile('dump.lzma', {create:true, exclusive: false}, function(fileEntry){
 		fileEntry.createWriter(function(fileWriter) {
-			document.getElementById('status').innerHTML = '<b>Downloading</b>';
+			document.getElementById('status').innerHTML = '<b>Downloading</b> '+accessibleTitle;
 			document.getElementById('progress').value = fileWriter.length / dumpsize;
 			if(fileWriter.length < dumpsize){
 				requestChunk(dumpurl, fileWriter.length, function(buf){
@@ -139,6 +148,7 @@ function downloadDump(){
 					fileWriter.write(bb.getBlob());
 					console.log('writing');
 					downloadDump();
+					updateAccessibleIndex();
 				})
 			}else{
 				console.log('done downloading dump');
@@ -183,7 +193,9 @@ function requestChunk(url, pos, callback){
 		//do something
 	}
 	xhr.onload = function(){
-		callback(xhr.response)
+		setTimeout(function(){
+			callback(xhr.response)
+		},1000);
 	}
 	xhr.send(null)
 }

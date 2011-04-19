@@ -12,10 +12,21 @@ autocomplete(document.getElementById('search'), document.getElementById('autocom
 	//console.log(query);
 	readArticle(query, function(title, text){
 		document.getElementById('title').innerText = title;	
-		document.getElementById('content').innerText = text;
+		document.getElementById('content').innerHTML = parse_wikitext(text);
 	})
 })
 
+/*
+function parse_wikitext(text){
+	return text.replace(/===([^=\n]+)===\n+/g,'<h3>$1</h3>').replace(/==([^=\n]+)==\n+/g,'<h2>$1</h2>')
+						 .replace(/\n\*\* ([^\n]+)/g, '\n<ul><ul><li>$1</li></ul></ul>')
+						 .replace(/\n\* ([^\n]+)/g, '\n<ul><li>$1</li></ul>')
+						 .replace(/'''([^']+)'''/g, '<b>$1</b>')
+						 .replace(/''([^']+)''/g, '<i>$1</i>')
+						 .replace(/\n+/g, '<br>')
+						 .replace(/\[\[([^\|\]]+)\|([^\]]+)\]\]/g, '<a href="$1">$2</a>');
+}
+*/
 
 function runSearch(query, callback){
 	binarySearch(slugfy(query), 0, accessibleIndex, 200, 400, defaultParser, function(low, high, res){
@@ -79,7 +90,7 @@ function readPage(position, callback, blocksize){
   }, false)
   worker.addEventListener('message', function(e){
   	var block = e.data;
-  	var re = /=([^\n\#\<\>\[\]\|\{\}]+)=\n\n\n\n/g;
+  	var re = /=([^=\n\#\<\>\[\]\|\{\}]+)=\n\n\n\n/g;
   	var matches = re.exec(block), lastIndex = 0;
 		while (matches){
 			articleCache[matches[1]] = block.slice(re.lastIndex, (matches = re.exec(block))?matches.index:undefined)
