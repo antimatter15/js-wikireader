@@ -131,6 +131,7 @@ function readIndex(start, length, callback){
 		indexCache[hash] = fr.result;
 		callback(fr.result);
 	}
+	
 	fr.readAsText(index.slice(Math.max(0, start), Math.min(index.size - start, length)), 'utf-8');
 }
 

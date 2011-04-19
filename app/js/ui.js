@@ -10,11 +10,69 @@ autocomplete(document.getElementById('search'), document.getElementById('autocom
 	})
 }, function(query){
 	//console.log(query);
-	readArticle(query, function(title, text){
+	loadArticle(query);
+});
+
+
+function updateIndex(){
+	var val = document.getElementById('slider').value - 0;
+	var step = document.getElementById('slider').step - 0;
+	console.log(val);
+	readIndex(val - 200, step + 200, function(text){
+		document.getElementById('pageitems').innerHTML =  text.split('\n').slice(1, -1).map(function(x){
+			var title = x.split(/\||>/)[0];
+			return '<a href="?'+title+'">'+title+'</a>';
+		}).join("<br>");
+	});
+}
+
+var lastArticlePos = 0;
+
+function loadArticle(query){
+	
+	query = query.replace('w:','');
+	if(query == 'Special:Random'){
+		//this is actually much more complicated than it needs to be. but its probably
+		//simpler this way and requires less reafactoring, so meh.
+		readIndex(Math.floor(accessibleIndex * Math.random()), 400, function(text){
+			var title = text.split('\n')[1].split(/\||\>/)[0];
+			loadArticle(title);
+      history.replaceState({}, '', '?'+title);
+		});
+		document.getElementById('title').innerText = "Special:Random";	
+		return;
+	}
+	if(query == 'Special:Index'){
+		if(accessibleIndex == 0) return setTimeout(function(){
+			loadArticle(query);
+		}, 100);
+		document.getElementById('title').innerText = "Special:Index";	
+		document.getElementById('content').innerHTML = "<input type=range id=slider> <div id=pageitems>";
+		document.getElementById('slider').max = accessibleIndex;
+		var step = document.body.scrollHeight*document.body.scrollWidth/231.04;
+		document.getElementById('slider').step = step;
+		document.getElementById('slider').value = Math.floor(lastArticlePos/step) * step;
+		console.log(document.getElementById('slider').value )
+		var lastTime = 0;
+		document.getElementById('slider').onchange = function(){
+			lastTime = +new Date;
+			var closureTime = lastTime;
+			setTimeout(function(){
+				if(closureTime >= lastTime) updateIndex();
+			}, 200)
+		}
+		updateIndex();
+		return;
+	}
+	readArticle(query, function(title, text, pos){
 		document.getElementById('title').innerText = title;	
 		document.getElementById('content').innerHTML = parse_wikitext(text);
+		if(pos) lastArticlePos = pos;
+		//console.log(pos, accessibleIndex, pos/accessibleIndex);
+		//document.getElementById('slider').max = accessibleIndex;
+		//document.getElementById('slider').value = pos;
 	})
-})
+}
 
 /*
 function parse_wikitext(text){
@@ -36,7 +94,7 @@ function runSearch(query, callback){
 				return {title: title, pointer: /\>/.test(x) ? ptr : parse64(ptr), redirect: /\>/.test(x), score: scoreResult(title, query)}
 			}).sort(function(a, b){
 				return a.score - b.score
-			}))
+			}), low)
 				//var display = /\>/.test(x)?ptr:title;
 				//scoremap[display] = Math.min(scoremap[display] || Infinity, scoreResult(title, query));
 			})
@@ -59,24 +117,54 @@ function runSearch(query, callback){
 var redirectCache = {};
 
 function findBlock(query, callback){
-	runSearch(query, function(results){
+	runSearch(query, function(results, pos){
 		if(results[0].redirect){
 			findBlock(results[0].pointer, callback)
 		}else{
-			callback(results[0].title, results[0].pointer)
+			callback(results[0].title, results[0].pointer, pos)
 		}
 	})
 }
+
+
+
+
+document.body.onclick = function(e){
+  if(e.button == 0  ){
+    var link = null;
+    if(e.target.tagName.toLowerCase() == 'a'){
+      link = e.target;
+    }else if(e.target.parentNode.tagName.toLowerCase() == 'a'){
+      link = e.target.parentNode;
+    }
+    if(link){
+      if(link.href.replace(/\?.*$/,'') == location.href.replace(/\?.*$/,'')){
+        e.preventDefault();
+        history.pushState({}, '', link.href);
+        loadArticle(unescape(location.search.substr(1)))
+      }
+    }
+  }
+}
+
+onpopstate = function(e){
+
+  loadArticle(unescape(location.search.substr(1)))
+}
+
 
 var articleCache = {};
 var worker;
 
 
 function readArticle(query, callback){
-	findBlock(query, function(title, position){
-		if(articleCache[title]) return callback(title, articleCache[title]);
+	if(!index || accessibleIndex < 10 || !dump) return setTimeout(function(){
+		readArticle(query, callback);
+	}, 10);
+	findBlock(query, function(title, position, location){
+		if(articleCache[title]) return callback(title, articleCache[title], location);
 		readPage(position, function(){
-			readArticle(title, callback); //recurse because im lazy
+			callback(title, articleCache[title] || "==Page Not Found==", location);
 		})
 	})
 }
