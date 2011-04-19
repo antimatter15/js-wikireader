@@ -8,9 +8,9 @@
     }
   },
   "icons": {
-    "16": "16.png",
-    "64": "64.png",
-    "128": "128.png"
+    "16": "image/16.png",
+    "64": "image/64.png",
+    "128": "image/128.png"
   },
   "permissions": [
     "unlimitedStorage",
