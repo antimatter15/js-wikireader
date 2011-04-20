@@ -1,25 +1,46 @@
 function scoreResult(result, query){
   return damlev(result.substr(0, query.length), query) * 0.5 + damlev(result.substr(0, query.length).toLowerCase(), query.toLowerCase()) * 2 + Math.abs(query.length - result.length) * 0.1
 }
-
+var lastSearchTime = 0;
 autocomplete(document.getElementById('search'), document.getElementById('autocomplete'), function(query, callback){
+	if(accessibleIndex < 100) return callback(["Downloading... Please Wait"]);
 	runSearch(query, function(results){
-		callback(results.slice(0, 15).map(function(x){
-			return x.title
+		
+		var map = {};
+		callback(results.map(function(x){
+			return x.redirect ? x.pointer : x.title;
+		}).filter(function(x){
+		  if(map[x]) return 0;
+		  return map[x] = 1;
+		}).slice(0,15).map(function(x){
+			//this is probably one of my cleverest regexes ever
+			//return x.replace(new RegExp('('+query.split('').join('|')+')','gi'), '|$1|').replace(/((\|.\|){2,})/g, '<b>$1</b>').replace(/\|/g,'')
+			return x.replace(new RegExp('('+query.replace(/ /g,'|')+')', 'gi'), '<b>$1</b>')
 		}))
 	})
 }, function(query){
-	//console.log(query);
+	if(new Date - lastSearchTime > 3141){ //Pi! also 3sec is like google instant's magic number apparnetly too
+		document.title = query;
+    history.pushState({}, '', '?'+query);
+	}
+	lastSearchTime = new Date;
 	loadArticle(query);
 });
+
+function incrementSlider(pagesDelta){
+	var step = document.getElementById('slider').step - 0;
+	document.getElementById('slider').value -= pagesDelta * -step;
+	updateIndex();
+}
 
 
 function updateIndex(){
 	var val = document.getElementById('slider').value - 0;
 	var step = document.getElementById('slider').step - 0;
-	console.log(val);
+	var max = document.getElementById('slider').max - 0;	
+	document.getElementById('title').innerText = "Index: Page "+(1+(val/step))+" of "+Math.floor(1+(max/step));	
 	readIndex(val - 200, step + 200, function(text){
-		document.getElementById('pageitems').innerHTML =  text.split('\n').slice(1, -1).map(function(x){
+		document.getElementById('pageitems').innerHTML = '<a href="javascript:incrementSlider(-1)" class="prev">Previous</a> / <a class="next" href="javascript:incrementSlider(1)">Next</a><br>' + text.split('\n').slice(1, -1).map(function(x){
 			var title = x.split(/\||>/)[0];
 			return '<a href="?'+title+'">'+title+'</a>';
 		}).join("<br>");
@@ -30,13 +51,17 @@ var lastArticlePos = 0;
 
 function loadArticle(query){
 	
-	query = query.replace('w:','');
+	query = query.replace(/w(ikipedia)?:/,'');
+	if(query == ''){
+		return;
+	}
 	if(query == 'Special:Random'){
 		//this is actually much more complicated than it needs to be. but its probably
 		//simpler this way and requires less reafactoring, so meh.
 		readIndex(Math.floor(accessibleIndex * Math.random()), 400, function(text){
-			var title = text.split('\n')[1].split(/\||\>/)[0];
+			var title = text && text.split('\n')[1].split(/\||\>/)[0];
 			loadArticle(title);
+			document.title = title;
       history.replaceState({}, '', '?'+title);
 		});
 		document.getElementById('title').innerText = "Special:Random";	
@@ -46,13 +71,13 @@ function loadArticle(query){
 		if(accessibleIndex == 0) return setTimeout(function(){
 			loadArticle(query);
 		}, 100);
-		document.getElementById('title').innerText = "Special:Index";	
+		document.getElementById('title').innerText = "Index";	
 		document.getElementById('content').innerHTML = "<input type=range id=slider> <div id=pageitems>";
 		document.getElementById('slider').max = accessibleIndex;
-		var step = document.body.scrollHeight*document.body.scrollWidth/231.04;
+		var step = Math.floor(document.body.scrollHeight*document.body.scrollWidth/191.04);
 		document.getElementById('slider').step = step;
 		document.getElementById('slider').value = Math.floor(lastArticlePos/step) * step;
-		console.log(document.getElementById('slider').value )
+
 		var lastTime = 0;
 		document.getElementById('slider').onchange = function(){
 			lastTime = +new Date;
@@ -64,9 +89,13 @@ function loadArticle(query){
 		updateIndex();
 		return;
 	}
+	document.getElementById('title').innerText = "Loading "+query+"...";	
 	readArticle(query, function(title, text, pos){
+		document.title = title;
+		history.replaceState({}, '', '?'+title);
 		document.getElementById('title').innerText = title;	
 		document.getElementById('content').innerHTML = parse_wikitext(text);
+		//document.getElementById('content').innerText = text;
 		if(pos) lastArticlePos = pos;
 		//console.log(pos, accessibleIndex, pos/accessibleIndex);
 		//document.getElementById('slider').max = accessibleIndex;
@@ -87,9 +116,9 @@ function parse_wikitext(text){
 */
 
 function runSearch(query, callback){
-	binarySearch(slugfy(query), 0, accessibleIndex, 200, 400, defaultParser, function(low, high, res){
+	binarySearch(slugfy(query), 0, accessibleIndex, 200, 800, defaultParser, function(low, high, res){
 		readIndex(low, high - low, function(text){
-			callback(text.split('\n').slice(1).map(function(x){
+			callback(text.split('\n').slice(1, -1).map(function(x){
 				var parts = x.split(/\||\>/), title = parts[0], ptr = parts[1];
 				return {title: title, pointer: /\>/.test(x) ? ptr : parse64(ptr), redirect: /\>/.test(x), score: scoreResult(title, query)}
 			}).sort(function(a, b){
@@ -190,5 +219,5 @@ function readPage(position, callback, blocksize){
 	fr.onload = function(){
 		worker.postMessage(fr.result);
 	}
-	fr.readAsBinaryString(dump.slice(position, blocksize || 200000));
+	fr.readAsBinaryString(blobSlice(dump, position, blocksize || 200000));
 }

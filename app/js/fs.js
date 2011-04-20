@@ -1,9 +1,15 @@
-var indexurl = 'http://localhost/js-wikireader/app/tools/dump.index';
-var indexsize = 740060;
-var dumpsize = 55254607;
-var dumpurl = 'http://localhost/js-wikireader/app/tools/dump.lzma';
-var index, dump;
+//var indexurl = 'http://192.168.1.20/js-wikireader/app/tools/dump.index';
+//var indexsize = 739624;
+//var dumpsize = 50603027;
+//var dumpurl = 'http://192.168.1.20/js-wikireader/app/tools/dump.lzma';
 
+var indexurl = 'http://192.168.1.20/js-wikireader/appdumps/simplewiki/dump.index';
+var indexsize = 2338795;
+var dumpsize = 32012001;
+var dumpurl = 'http://192.168.1.20/js-wikireader/appdumps/simplewiki/dump.lzma';
+
+
+var index, dump;
 var accessibleIndex = 0;
 var accessibleTitle = ''; //almost last accessible title
 var fs;
@@ -18,6 +24,46 @@ function parse64(string){
 	for(var l = string.length, i = 0; i < l; i++) n = n * 64 + clookup[string[i]];
 	return n;
 }
+
+var blobType;
+
+//ideally this will future-proof the implementation.
+//for when .slice means something different
+function testSliceType(){
+	var bb = createBlobBuilder();
+	bb.append("elitistland");
+	var number = bb.getBlob().slice(3,5).size;
+	if(number == 5){
+		blobType = 1
+	}else if(number == 2){
+		blobType = 2;
+	}else{
+		alert("Apparently the future, assuming you are in the future, is really messed up by mid-2011 standards.");
+	}
+}
+
+
+function blobSlice(blob, start, length){
+	if(blob.webkitSlice){
+		return blob.webkitSlice(start, start + length);
+	}else if(blob.slice){
+		if(!blobType) testSliceType();
+		if(blobType == 1){
+			return blob.slice(start, length);
+		}else if(blobType == 2){
+			return blob.slice(start, start + length);
+		}
+	}
+}
+
+function createBlobBuilder(){
+	if(window.BlobBuilder){
+		return new BlobBuilder()
+	}else if(window.WebkitBlobBuilder){
+		return new WebkitBlobBuilder();
+	}
+}
+
 
 window.requestFileSystem(window.PERSISTENT, 10*1024*1024*1024 /*10 GB*/, function(filesystem){
 	fs = filesystem;
@@ -73,7 +119,7 @@ function downloadStatus(callback){
 	binarySearch(dump.size, accessibleIndex, index.size, 500, 1000, function(text){
 		return parse64(text.match(/\n.+?\|([\w/_\-]+)/)[1])
 	}, function(low, high, result, text){	 //using the text arg is bad! but we're using this to save a bit of time
-		console.log(low, high, result);
+		//console.log(low, high, result);
 		readIndex(low, high - low, function(raw){
 			var text = utfdec(raw);
 			var lines = text.split("\n").slice(1);
@@ -87,7 +133,7 @@ function downloadStatus(callback){
 				}
 				bytecount += lines[i].length + 1; //account for the newline
 			}
-			var title = text.split('\n')[1].split(/\||\>/)[0];
+			var title = text && text.split('\n')[1].split(/\||\>/)[0];
 			callback(low + bytecount, title, lastnum, bytecount);
 		})
 	})
@@ -115,7 +161,7 @@ function binarySearch(value, low, high, win, threshold, parser, callback){
 
 
 function defaultParser(text){
-	return slugfy(text.split("\n")[1].split(/\||\>/)[0])
+	return text && slugfy(text.split("\n")[1].split(/\||\>/)[0])
 }
 
 
@@ -124,6 +170,8 @@ function defaultParser(text){
 var indexCache = {};
 
 function readIndex(start, length, callback){
+	if(!index) return callback('');
+
 	var hash = 'i'+start+'-'+length;
 	if(indexCache[hash]) return callback(indexCache[hash]);
 	var fr = new FileReader();
@@ -132,7 +180,7 @@ function readIndex(start, length, callback){
 		callback(fr.result);
 	}
 	
-	fr.readAsText(index.slice(Math.max(0, start), Math.min(index.size - start, length)), 'utf-8');
+	fr.readAsText(blobSlice(index, Math.max(0, start), Math.min(index.size - start, length)), 'utf-8');
 }
 
 
@@ -144,7 +192,7 @@ function downloadDump(){
 			if(fileWriter.length < dumpsize){
 				requestChunk(dumpurl, fileWriter.length, function(buf){
 					fileWriter.seek(fileWriter.length);
-					var bb = new BlobBuilder();
+					var bb = createBlobBuilder();
 					bb.append(buf);
 					fileWriter.write(bb.getBlob());
 					console.log('writing');
@@ -166,7 +214,7 @@ function downloadIndex(){
 			if(fileWriter.length < indexsize){
 				requestChunk(indexurl, fileWriter.length, function(buf){
 					fileWriter.seek(fileWriter.length);
-					var bb = new BlobBuilder();
+					var bb = createBlobBuilder();
 					bb.append(buf);
 					fileWriter.write(bb.getBlob());
 					console.log('writing');
@@ -196,7 +244,7 @@ function requestChunk(url, pos, callback){
 	xhr.onload = function(){
 		setTimeout(function(){
 			callback(xhr.response)
-		},1000);
+		},10);
 	}
 	xhr.send(null)
 }
@@ -237,5 +285,6 @@ function errorHandler(e) {
   };
 
   console.log('Error: ' + msg);
+  document.getElementById('download').style.display = '';
   document.getElementById('status').innerHTML = '<b>Error</b> '+msg;
 }
