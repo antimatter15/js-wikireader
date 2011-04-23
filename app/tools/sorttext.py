@@ -74,36 +74,47 @@ for line in sort:
 		index.write(title + ">" + m.group(1) + "\n")
 	else:
 		window = 100000
-		page = re.sub(r'\[\[(File|Image):[^\]]+\[\[.*\]\]', "[[File:", page)
-		page = re.sub(r'\[\[(File|Image):[^\]]+\[\[.*\]\]', "[[File:", page)
-		page = re.sub(r'\[\[(File|Image):[^\]]+\]\]', "", page)
 		
-		page = re.sub(r'\{\{[^\}]+\-stub\}\}\n?', "", page)
-		
-		
-		page = re.sub(r'<!--.*-->', "", page)
-		page = re.sub(r'\[\[Category:.*?\]\]', "", page)
-		page = re.sub(r'<ref( \w+=.*)?>[^\<\>]*</ref>', "", page)
-		page = re.sub(r'\[\[\s*[a-z]{2,3}(-[a-z]{1,3}(-[a-z]{1,3})?)?:.*\]\]\s*', "", page)
-		page = re.sub(r'<!--[^>]*?-->', "", page)
-		#page = re.sub(r'([^\[])\[([a-z]+:[^ ]+?) ([^\]]+)\]([^\]])', "---------\1\3\4-------------", page)
-		page = re.sub(r'\|\s*[\w_]+\s*=\s*\n', "", page)
-		mx = re.search(r'={1,4}\s*?references\s*?={1,4}', page, re.IGNORECASE)
-		if mx is not None: page = page[0: mx.start(0)]
-		mx = re.search(r'={1,4}\s*?sources\s*?={1,4}', page, re.IGNORECASE)
-		if mx is not None: page = page[0: mx.start(0)]
-		mx = re.search(r'={1,4}\s*?other websites\s*?={1,4}', page, re.IGNORECASE)
-		if mx is not None: page = page[0: mx.start(0)]
-		mx = re.search(r'={1,4}\s*?external links\s*?={1,4}', page, re.IGNORECASE)
-		if mx is not None: page = page[0: mx.start(0)]
+		page = re.sub('<ref[^\0]*?\/(ref)?\>', '', page)
+		page = re.sub('<gallery>[^\0]*?<\/gallery>', '', page)
+		page = re.sub('<!--.*?-->', '', page)
+		page = re.sub('<!--[^\0]*?-->', '', page)
+
+		page = re.sub(re.compile('\[\[\s*(File|Image)\s*:[^\]\[]*\[\[[^\[\]]*\]\]', re.IGNORECASE), '[[File:', page)
+		page = re.sub(re.compile('\[\[\s*(File|Image)\s*:[^\]\[]*\[\[[^\[\]]*\]\]', re.IGNORECASE), '[[File:', page)
+		page = re.sub(re.compile('\[\[\s*(File|Image)\s*:[^\]\[]*\[\[[^\[\]]*\]\]', re.IGNORECASE), '[[File:', page)
+		page = re.sub(re.compile('\[\[\s*(File|Image)\s*:[^\]\[]*\[\[[^\[\]]*\]\]', re.IGNORECASE), '[[File:', page)
+		page = re.sub(re.compile('\[\[\s*(File|Image)\s*:[^\]\[]*\[\[[^\[\]]*\]\]', re.IGNORECASE), '[[File:', page)
+		page = re.sub(re.compile('\[\[\s*(File|Image)\s*:[^\]\[]*\[\[[^\[\]]*\]\]', re.IGNORECASE), '[[File:', page)
+
+		page = re.sub('\[\[\s*(File|Image)\s*:[^\]]*\]\]', '', page)
+
+		page = re.sub('\{\{As of\|(\d*)(\|.*?)?\}\}', 'As of \g<1>', page)
+
+		page = re.sub('\{\{[^\}\{]*\{\{[^\{\}]*\}\}', '{{', page)
+		page = re.sub('\{\{[^\}\{]*\{\{[^\{\}]*\}\}', '{{', page)
+		page = re.sub('\{\{[^\}\{]*\{\{[^\{\}]*\}\}', '{{', page)
+		page = re.sub('\{\{[^\}\{]*\{\{[^\{\}]*\}\}', '{{', page)
+		page = re.sub('\{\{[^\}\{]*\{\{[^\{\}]*\}\}', '{{', page)
+		page = re.sub('\{\{[^\}\{]*\{\{[^\{\}]*\}\}', '{{', page)
+		page = re.sub('\{\{[^\}\{]*\{\{[^\{\}]*\}\}', '{{', page)
+		page = re.sub('\{\{[^\}\{]*\{\{[^\{\}]*\}\}', '{{', page)
+		page = re.sub('\{\{[^\}\{]*\{\{[^\{\}]*\}\}', '{{', page)
+
+		page = re.sub('\s*\{\{[^\}\{]*\}\}', '', page)
+		page = re.sub('\[\[\s*[a-z\-]+\s*:[^\n\|]*?\]\]', '', page)
+		page = re.sub(re.compile('\[\[Category\s*:\s*.*?\]\]', re.IGNORECASE), '', page)
+
+		page = re.sub('\n(\s?\n)+', '\n\n', page)
+		page = re.sub('[\n\s]+(={2,6})\s*(.*?)\s*(={2,6})[\n\s]+', '\n\g<1>\g<2>\g<3>\n', page)
+
+		page = re.sub(re.compile('={2,6}\s*(References|Sources|Other Websites|External Links|Notes|Footnotes|Further Reading)\s*={2,6}[^\0]+', re.IGNORECASE), '', page)
+
 		page = page.strip()
-		if re.match("^\{\{.+\}\}$", page) != None:
-			#print page
-			continue
-			
-		page = re.sub(r'\{\{[^\}]+\}\}\n?', "", page) #remove all templates
+
 		
-		page = re.sub(r'\n\n+', "\n\n", page) #remove all excessive newlines
+		if page == "":
+			continue
 		
 		page = "=" + title + "=\n\n\n\n" + page
 	  

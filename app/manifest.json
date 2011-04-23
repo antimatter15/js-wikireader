@@ -14,8 +14,6 @@
   },
   "permissions": [
     "unlimitedStorage",
-    "notifications",
-    "<all_urls>",
-    "http://wikireader.commondatastorage.googleapis.com/"
+    "http://commondatastorage.googleapis.com"
   ]
 }

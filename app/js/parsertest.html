@@ -1,0 +1,57 @@
+<style>
+	* {
+		margin:0;
+		padding:0;
+		border:0;
+	}
+	textarea {
+		width: 50%;
+		position:absolute;
+		top:0;
+		height: 100%;
+	}
+</style>
+<textarea style="right:0" id="c"></textarea>
+<textarea style="left:0" oninput="		document.getElementById('c').value = magic(this.value)"></textarea>
+<script>
+	function magic(text){
+		var ot = text;
+		text = text
+			.replace(/<ref[^\0]*?\/(ref)?\>/g,'')
+			
+			.replace(/<gallery>[^\0]*?<\/gallery>/gm, '') //remove image galleries
+			
+			.replace(/<!--.*?-->/gm, '') //remove comments
+			.replace(/<!--[^\0]*?-->/gm, '') //remove comments
+			
+			.replace(/\[\[\s*(File|Image)\s*:[^\]\[]*\[\[[^\[\]]*\]\]/ig, '[[File:') //hopefully wikipedia has no images inside images
+			.replace(/\[\[\s*(File|Image)\s*:[^\]\[]*\[\[[^\[\]]*\]\]/ig, '[[File:')
+			.replace(/\[\[\s*(File|Image)\s*:[^\]\[]*\[\[[^\[\]]*\]\]/ig, '[[File:')
+			.replace(/\[\[\s*(File|Image)\s*:[^\]\[]*\[\[[^\[\]]*\]\]/ig, '[[File:')
+			.replace(/\[\[\s*(File|Image)\s*:[^\]\[]*\[\[[^\[\]]*\]\]/ig, '[[File:')
+			.replace(/\[\[\s*(File|Image)\s*:[^\]\[]*\[\[[^\[\]]*\]\]/ig, '[[File:') //hopefully there will never be more than six links in an image caption.
+			.replace(/\[\[\s*(File|Image)\s*:[^\]]*\]\]/ig, '') //the final cleanup. om nom nom.
+			.replace(/\{\{As of\|(\d*)(\|.*?)?\}\}/g, 'As of $1')
+			.replace(/\{\{[^\}\{]*\{\{[^\{\}]*\}\}/g, '{{') //collapse nesting layer one {{ {{ }} }} -> {{ }}
+			.replace(/\{\{[^\}\{]*\{\{[^\{\}]*\}\}/g, '{{') //collapse lower nesting layers
+			.replace(/\{\{[^\}\{]*\{\{[^\{\}]*\}\}/g, '{{') //collapse tertiary nesting layer
+			.replace(/\{\{[^\}\{]*\{\{[^\{\}]*\}\}/g, '{{')
+			.replace(/\{\{[^\}\{]*\{\{[^\{\}]*\}\}/g, '{{')
+			.replace(/\{\{[^\}\{]*\{\{[^\{\}]*\}\}/g, '{{')
+			.replace(/\{\{[^\}\{]*\{\{[^\{\}]*\}\}/g, '{{')
+			.replace(/\{\{[^\}\{]*\{\{[^\{\}]*\}\}/g, '{{')
+			.replace(/\{\{[^\}\{]*\{\{[^\{\}]*\}\}/g, '{{') //in practice, yes i actually need this many
+			.replace(/\s*\{\{[^\}\{]*\}\}/g, '') //this is for the final cleanup
+
+			.replace(/\[\[\s*[a-z\-]+\s*:[^\n\|]*?\]\]/g,'')
+			.replace(/\[\[Category\s*:\s*.*?\]\]/g, '')
+			.replace(/\n(\s?\n)+/g, '\n\n')
+			
+			.replace(/[\n\s]+(={2,6})\s*(.*?)\s*(={2,6})[\n\s]+/g, '\n$1$2$3\n')
+			
+			.replace(/={2,6}\s*(References|Sources|Other Websites|External Links|Notes|Footnotes)\s*={2,6}[^\0]+/gi, '')
+		text = text.trim();
+		console.log(ot.length, text.length, text.length/ot.length);
+		return text;
+	}
+</script>

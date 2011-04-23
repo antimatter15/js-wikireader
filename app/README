@@ -1,0 +1,41 @@
+Hello. 
+
+
+This is a readme file, and you would probably be somewhat annoyed
+if this text document didn't document anything that might be somehow
+important to the use of this project.
+
+The fact it's in the source code means its probably not user facing.
+Which means that this readme implies that you have some technical experience
+with the command line and aren't afraid to open up a text editor (though you
+probably won't need to).
+
+
+Anyway, to create your own updated or dump for an alternate language:
+
+
+1. Download a database dump: pages-articles.xml.bz2 should be the right one from http://dumps.wikimedia.org/backup-index.html
+
+2. Unpack the bz2 compressed archives to pages-articles.xml
+
+3. Open up a terminal and navigate to the tools directory of this folder
+
+4. Make sure you have python 2.6 (other versions may work too) and pylzma 
+
+5. Run python indexer.py < pages-articles.xml
+
+6. Run python sort.py
+
+7. Run python sorttext.py
+
+8. The only important files are dump.index and dump.lzma, copy those to a web server
+
+9. Modify manifest.json to include the <all_urls> permission instead of the google storage url.
+
+	"permissions": [
+    "unlimitedStorage",
+    "<all_urls>"
+  ]
+
+10. Find the URL of the directory which contains dump.index and dump.lzma and paste it in the application when it asks for the URL
+

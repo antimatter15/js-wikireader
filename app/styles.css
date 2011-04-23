@@ -1,0 +1,164 @@
+body {
+  font-family: sans-serif;
+  font-size: 13px;
+  overflow-y: scroll;
+  color: #111111;
+  background-color: #e8e8e8;
+  margin-right: 20px;
+  margin-left: 20px;
+  margin-top: 0px;
+}
+
+
+#content {
+  background-color: #fefdfc;
+	padding: 20px;
+	padding-top: 10px;
+	padding-bottom: 10px;
+	margin-top: 40px;
+	-webkit-box-shadow: -0px 0px 10px #888;
+}
+
+#pageitems {
+	-webkit-column-width: 180px;
+	-webkit-column-gap: 20px;
+}
+
+#slider {
+	width: 100%;
+}
+
+pre {
+  word-wrap: break-word;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
+a:visited {
+    color: #0b0080;
+}
+a {
+  text-decoration: none;
+  color: #0645AD;
+  background: none;
+}
+
+a:active {
+  color: #FAA700;
+}
+
+a.new {
+  color: #C20;
+}
+
+#toolbar {
+
+	position: fixed;
+	top: 0px;
+	left: 0;
+  background-color: #e8e8e8;
+  
+	/*
+	padding: 4px;
+	padding-right: 20px;
+	padding-top: 9px;
+	border-bottom-left-radius: 10px;
+	right: 0px;
+	*/
+	background-image: -webkit-gradient(
+		  linear,
+		  left bottom,
+		  left top,
+		  color-stop(0, rgb(232,232,232)),
+		  color-stop(1, rgb(199,199,199))
+	);
+	width: 100%;
+}
+
+#toolbar > * {
+	padding-right: 5px;
+	padding-left: 5px;
+}
+
+
+#nav a:visited {
+	color: #0645AD !important;
+}
+
+#nav a {
+	padding-right: 10px;
+}
+
+
+
+
+#search {
+	border: 1px solid #aaa;
+	font-size: 13px;
+	padding: 0.2em;
+	width: 250px;
+	outline: none;
+	
+}
+
+#search:focus {
+	-webkit-box-shadow: 0px 0px 10px #aaa;
+}
+
+.autocomplete {
+	width: 254px;
+	background-color: white;
+	border: 1px solid #aaa;
+	cursor: default;
+	overflow-x: hidden;	
+	-webkit-box-shadow: 0px 5px 10px #aaa;
+}
+
+.autocomplete .item {
+	width: 100%;
+	padding: 0.2em;
+}
+
+.autocomplete .item.highlight {
+	background-color: #4C59A6;
+	background-color: Highlight;
+}
+
+#title {
+	margin-top: 3px;
+	margin-bottom: 0px;
+	padding-left: 18px;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis
+}
+
+
+#nav {
+	float:right;
+	padding: 5px;
+	padding-right: 20px;
+}
+
+footer {
+	padding-top: 10px;
+	font-size: x-small;
+}
+
+/*
+#a55858
+#333333
+#0b0080
+#520
+*/
+
+a.next, a.prev {
+	font-weight: bold;
+}
+
+#download {
+	display: inline;
+	padding-right: 20px;
+}

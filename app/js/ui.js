@@ -15,7 +15,7 @@ autocomplete(document.getElementById('search'), document.getElementById('autocom
 		}).slice(0,15).map(function(x){
 			//this is probably one of my cleverest regexes ever
 			//return x.replace(new RegExp('('+query.split('').join('|')+')','gi'), '|$1|').replace(/((\|.\|){2,})/g, '<b>$1</b>').replace(/\|/g,'')
-			return x.replace(new RegExp('('+query.replace(/ /g,'|')+')', 'gi'), '<b>$1</b>')
+			return x.replace(new RegExp('('+query.replace(/[^\w]/g, ' ').replace(/ +/g,'|')+')', 'gi'), '<b>$1</b>')
 		}))
 	})
 }, function(query){
@@ -32,6 +32,7 @@ function incrementSlider(pagesDelta){
 	document.getElementById('slider').value -= pagesDelta * -step;
 	updateIndex();
 }
+
 
 
 function updateIndex(){
@@ -170,7 +171,7 @@ document.body.onclick = function(e){
       if(link.href.replace(/\?.*$/,'') == location.href.replace(/\?.*$/,'')){
         e.preventDefault();
         history.pushState({}, '', link.href);
-        loadArticle(unescape(location.search.substr(1)))
+        loadArticle(decodeURIComponent(location.search.substr(1)))
       }
     }
   }
@@ -178,7 +179,7 @@ document.body.onclick = function(e){
 
 onpopstate = function(e){
 
-  loadArticle(unescape(location.search.substr(1)))
+  loadArticle(decodeURIComponent(location.search.substr(1)))
 }
 
 

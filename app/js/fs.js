@@ -1,13 +1,3 @@
-//var indexurl = 'http://192.168.1.20/js-wikireader/app/tools/dump.index';
-//var indexsize = 739624;
-//var dumpsize = 50603027;
-//var dumpurl = 'http://192.168.1.20/js-wikireader/app/tools/dump.lzma';
-
-var indexurl = 'http://192.168.1.20/js-wikireader/appdumps/simplewiki/dump.index';
-var indexsize = 2338795;
-var dumpsize = 32012001;
-var dumpurl = 'http://192.168.1.20/js-wikireader/appdumps/simplewiki/dump.lzma';
-
 
 var index, dump;
 var accessibleIndex = 0;
@@ -64,20 +54,23 @@ function createBlobBuilder(){
 	}
 }
 
-
-window.requestFileSystem(window.PERSISTENT, 10*1024*1024*1024 /*10 GB*/, function(filesystem){
-	fs = filesystem;
-	loadIndex(function(){
-		console.log('loaded index');
-		loadDump(function(){
-			console.log('loaded dump');
-			updateAccessibleIndex();
-			downloadIndex();
-			downloadDump();
+function initialize(){
+	window.requestFileSystem(window.PERSISTENT, 10*1024*1024*1024 /*10 GB*/, function(filesystem){
+		fs = filesystem;
+		loadIndex(function(){
+			console.log('loaded index');
+			loadDump(function(){
+				console.log('loaded dump');
+				updateAccessibleIndex();
+				downloadIndex();
+				downloadDump();
+			});
 		});
-	});
-}, errorHandler);
+	}, errorHandler);
+}
 
+
+initialize();
 
 function updateAccessibleIndex(){
 	downloadStatus(function(index, title){
@@ -109,6 +102,7 @@ function loadDump(callback){
 function updateDownloadStatus(){
 	if(!dump) return;
 	document.getElementById('progress').value = dump.size / dumpsize;
+	document.getElementById('download').title = (100 * dump.size / dumpsize).toFixed(5)+"%";
 }
 
 
@@ -141,22 +135,27 @@ function downloadStatus(callback){
 
 
 function binarySearch(value, low, high, win, threshold, parser, callback){
-	var mid = Math.round(low + (high - low) / 2);
-	//console.log(value, low, high, win, threshold, mid);
-	readIndex(mid - win, win * 2, function(text){
-		var result = parser(text); //maybe ideally something closer to the exact center would be better.
-		var offset = text.split("\n")[0].length + 1;
-		  
-		if(high - low < threshold * 2){
-			return callback(low, high, result, text);
-		}
-		//console.log(result, result < value ? '<' : '>', value);
-		if(result < value){
-			binarySearch(value, mid - win, high, win, threshold, parser, callback);
-		}else{
-			binarySearch(value, low, mid + win, win, threshold, parser, callback);
-		}
-	})
+	coreSearch(Math.round(low + (high - low) / 2));
+	function coreSearch(mid){
+		readIndex(mid - win, win * 2, function(text){
+			try{
+				var result = parser(text); //maybe ideally something closer to the exact center would be better.
+			}catch(err){
+				return coreSearch(mid + win * 2);
+			}
+			var offset = text.split("\n")[0].length + 1;
+				
+			if(high - low < threshold * 2){
+				return callback(low, high, result, text);
+			}
+			//console.log(result, result < value ? '<' : '>', value);
+			if(result < value){
+				binarySearch(value, mid - win, high, win, threshold, parser, callback);
+			}else{
+				binarySearch(value, low, mid + win, win, threshold, parser, callback);
+			}
+		})
+	}
 }
 
 
@@ -188,7 +187,7 @@ function downloadDump(){
 	fs.root.getFile('dump.lzma', {create:true, exclusive: false}, function(fileEntry){
 		fileEntry.createWriter(function(fileWriter) {
 			document.getElementById('status').innerHTML = '<b>Downloading</b> '+accessibleTitle;
-			document.getElementById('progress').value = fileWriter.length / dumpsize;
+			updateDownloadStatus();
 			if(fileWriter.length < dumpsize){
 				requestChunk(dumpurl, fileWriter.length, function(buf){
 					fileWriter.seek(fileWriter.length);
@@ -242,9 +241,11 @@ function requestChunk(url, pos, callback){
 		//do something
 	}
 	xhr.onload = function(){
+		if(xhr.status > 100 && xhr.status <= 400){
 		setTimeout(function(){
 			callback(xhr.response)
 		},10);
+		}
 	}
 	xhr.send(null)
 }
