@@ -543,5 +543,5 @@ onmessage = function(e){
   }, outStream, is);
 
 
-  postMessage(s);
+  postMessage(decodeURIComponent( escape(s)));
 }
