@@ -202,11 +202,14 @@ function readArticle(query, callback){
 function readPage(position, callback, blocksize){
 	var fr = new FileReader();
 	if(worker) worker.terminate();
-	worker = new Worker('js/LZMA_simple.js');
+	worker = new Worker('js/lzma.js');
 	worker.addEventListener('error', function(e){ 
     console.log('LZMA decompression error', e);
-  }, false)
+  }, false);
+  var starttime, endtime;
   worker.addEventListener('message', function(e){
+    endtime = +new Date;
+    console.log(endtime - starttime);
   	var block = e.data;
   	var re = /=([^=\n\#\<\>\[\]\|\{\}]+)=\n\n\n\n/g;
   	var matches = re.exec(block), lastIndex = 0;
@@ -219,6 +222,7 @@ function readPage(position, callback, blocksize){
   }, false);
 	fr.onload = function(){
 		worker.postMessage(fr.result);
+		starttime = +new Date;
 	}
 	fr.readAsBinaryString(blobSlice(dump, position, blocksize || 200000));
 }

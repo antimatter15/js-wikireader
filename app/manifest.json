@@ -1,7 +1,7 @@
 {
   "name": "Offline Wiki",
   "description": "An offline wikipedia reader.",
-  "version": "1",
+  "version": "1.0.1",
   "app": {
     "launch": {
       "local_path": "v2.html"
@@ -14,6 +14,7 @@
   },
   "permissions": [
     "unlimitedStorage",
-    "http://commondatastorage.googleapis.com"
+    "http://commondatastorage.googleapis.com",
+    "http://*/"
   ]
 }

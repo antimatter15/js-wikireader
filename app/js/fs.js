@@ -49,13 +49,14 @@ function blobSlice(blob, start, length){
 function createBlobBuilder(){
 	if(window.BlobBuilder){
 		return new BlobBuilder()
-	}else if(window.WebkitBlobBuilder){
-		return new WebkitBlobBuilder();
+	}else if(window.WebKitBlobBuilder){
+		return new WebKitBlobBuilder();
 	}
 }
 
 function initialize(){
-	window.requestFileSystem(window.PERSISTENT, 10*1024*1024*1024 /*10 GB*/, function(filesystem){
+	console.log('initializing');
+	(window.requestFileSystem||window.webkitRequestFileSystem)(window.PERSISTENT, 5*1024*1024 /*10 GB*/, function(filesystem){
 		fs = filesystem;
 		loadIndex(function(){
 			console.log('loaded index');
@@ -73,6 +74,7 @@ function initialize(){
 initialize();
 
 function updateAccessibleIndex(){
+	console.log('getting accessible index');
 	downloadStatus(function(index, title){
 		console.log('accessible index: ', index);
 		accessibleIndex = index;
@@ -141,7 +143,7 @@ function binarySearch(value, low, high, win, threshold, parser, callback){
 			try{
 				var result = parser(text); //maybe ideally something closer to the exact center would be better.
 			}catch(err){
-				return coreSearch(mid + win * 2);
+				return coreSearch(mid + win + 10000);
 			}
 			var offset = text.split("\n")[0].length + 1;
 				
@@ -190,6 +192,7 @@ function downloadDump(){
 			updateDownloadStatus();
 			if(fileWriter.length < dumpsize){
 				requestChunk(dumpurl, fileWriter.length, function(buf){
+				  console.log("downloaded");
 					fileWriter.seek(fileWriter.length);
 					var bb = createBlobBuilder();
 					bb.append(buf);
@@ -212,6 +215,7 @@ function downloadIndex(){
 		fileEntry.createWriter(function(fileWriter) {
 			if(fileWriter.length < indexsize){
 				requestChunk(indexurl, fileWriter.length, function(buf){
+				  console.log("meow");
 					fileWriter.seek(fileWriter.length);
 					var bb = createBlobBuilder();
 					bb.append(buf);
@@ -239,12 +243,14 @@ function requestChunk(url, pos, callback){
 	xhr.responseType = 'arraybuffer';
 	xhr.onerror = function(){
 		//do something
+		console.log("got error")
 	}
 	xhr.onload = function(){
+	  console.log(xhr.status, xhr);
 		if(xhr.status > 100 && xhr.status <= 400){
 		setTimeout(function(){
 			callback(xhr.response)
-		},10);
+		},500);
 		}
 	}
 	xhr.send(null)
