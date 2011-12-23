@@ -149,6 +149,17 @@ This is a very special type of bunny. This bunny feeds on knowledge, so you must
 		  written by <a href="http://twitter.com/antimatter15">@antimatter15</a> (please follow me on twitter). email comments and concerns to antimatter15@gmail.com.
 		</div>
 </footer>
+<script>
+if(!Blob.prototype.slice){
+  Blob.prototype.slice = function(start, len){
+    if(this.mozSlice){
+      return this.mozSlice(start, start + len);
+    }else{
+      return this.webkitSlice(start, start + len);
+    }
+  }
+}
+</script>
 
 <script src="js/slugfy.js"></script>
 <script src="js/render.js"></script>
